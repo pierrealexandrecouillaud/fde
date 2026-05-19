@@ -1601,16 +1601,16 @@ function _sbSaveContenus() {
   var edInv = document.getElementById('editor-investi');
   if(edInv && _currentLogId) _investiContents[_currentLogId] = edInv.innerHTML;
 
-  // 1. Sauvegarder les contenus investigation par logement (SANITISÉS)
+  // 1. Sauvegarder les contenus investigation par logement
+  // PAS de sanitisation pour Supabase — le serveur gère les gros contenus (base64 photos)
+  // La sanitisation ne sert que pour IDB/localStorage (5MB max)
   Object.keys(_investiContents).forEach(function(logId) {
     var html = _investiContents[logId] || '';
     if (!html || html.length < 10) return;
-    // Sanitiser pour enlever les base64 avant envoi Supabase
-    var cleanHtml = _sanitizeInvestiHTML(html);
     _sb.from('contenus').upsert({
       intervention_id: d._sbId,
       logement_id: logId,
-      investigation_html: cleanHtml,
+      investigation_html: html,
       skel_type: _activeSkelType || ''
     }, { onConflict: 'intervention_id,logement_id' })
     .then(function(r) {
@@ -1618,14 +1618,13 @@ function _sbSaveContenus() {
     });
   });
 
-  // 2. Sauvegarder la conclusion (SANITISÉE)
+  // 2. Sauvegarder la conclusion
   var edC = document.getElementById('editor-conclusion');
   if (edC && edC.innerHTML && edC.innerHTML.length > 10) {
-    var cleanConclu = _sanitizeInvestiHTML(edC.innerHTML);
     _sb.from('contenus').upsert({
       intervention_id: d._sbId,
       logement_id: '_conclusion',
-      conclusion_html: cleanConclu,
+      conclusion_html: edC.innerHTML,
       skel_type: _activeSkelType || ''
     }, { onConflict: 'intervention_id,logement_id' })
     .then(function(r) {
