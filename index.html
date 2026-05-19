@@ -2129,9 +2129,13 @@ function goTo(pageId){
         _sbLoadLogements(curD._sbId, function(logements){
           if(logements && logements.length){
             logements.forEach(function(log){
-              var exists=false;
-              for(var ci=1;ci<=_lc;ci++){ var o=document.getElementById('log-'+ci+'-occ'); if(o&&o.value===log.occupant){exists=true;break;} }
-              if(!exists){
+              var matchIdx=0;
+              for(var ci=1;ci<=_lc;ci++){ var o=document.getElementById('log-'+ci+'-occ'); if(o&&(o.value||'').trim()===(log.occupant||'').trim()){matchIdx=ci;break;} }
+              if(matchIdx){
+                // Logement existe → mettre à jour les coches
+                var v=document.getElementById('log-'+matchIdx+'-vis');if(v)v.checked=!!log.visite;
+                var s=document.getElementById('log-'+matchIdx+'-sin');if(s)s.checked=!!log.sinistre;
+              } else {
                 addLogement();
                 var lid='log-'+_lc;
                 var o2=document.getElementById(lid+'-occ');if(o2)o2.value=log.occupant||'';
@@ -2964,10 +2968,28 @@ function _refreshLogementsFromSupabase(d){
 function _loadInvestiFromSupabase(curD){
   _sbLoadContenus(curD._sbId, function(contenus){
     if(contenus && contenus.investiContents){
+      // Copier tous les contenus
+      var sbKeys=[];
       Object.keys(contenus.investiContents).forEach(function(logId){
         var h=contenus.investiContents[logId]||'';
-        if(h.length>20) _investiContents[logId]=h;
+        if(h.length>20){ _investiContents[logId]=h; sbKeys.push(logId); }
       });
+      // Si le premier logement visité a un ID différent de celui dans Supabase → copier
+      updateLogsVisites();
+      var fl=_logsVisites&&_logsVisites[0];
+      if(fl && !_investiContents[fl.id] && sbKeys.length>0){
+        _investiContents[fl.id]=contenus.investiContents[sbKeys[0]];
+      }
+      // Si aucun logement visité mais des contenus existent → forcer la coche Visité
+      if(!fl && sbKeys.length>0 && _lc>0){
+        for(var ci=1;ci<=_lc;ci++){
+          var v=document.getElementById('log-'+ci+'-vis');
+          if(v){v.checked=true; break;}
+        }
+        updateLogsVisites();
+        fl=_logsVisites&&_logsVisites[0];
+        if(fl && !_investiContents[fl.id]) _investiContents[fl.id]=contenus.investiContents[sbKeys[0]];
+      }
     }
     if(contenus && contenus.conclusion){
       var edC=document.getElementById('editor-conclusion');
@@ -2975,8 +2997,8 @@ function _loadInvestiFromSupabase(curD){
     }
     if(contenus && contenus.skelType) _activeSkelType=contenus.skelType;
     updateLogsVisites();
-    var fl=_logsVisites&&_logsVisites[0];
-    if(fl) loadInvestiSkeleton(fl);
+    var fl2=_logsVisites&&_logsVisites[0];
+    if(fl2) loadInvestiSkeleton(fl2);
   });
 }
 
