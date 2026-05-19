@@ -2161,33 +2161,24 @@ function goTo(pageId){
       }
     }
     if(_fl){
-      // ═══ LOCAL D'ABORD (instantané) puis Supabase met à jour en arrière-plan ═══
-      alert('LOAD-DIAG: _fl.id='+_fl.id+' _investiContents keys='+Object.keys(_investiContents).join(',')+' _currentLogId='+_currentLogId);
-      loadInvestiSkeleton(_fl);
-      // Rafraîchir depuis Supabase en arrière-plan
+      // ═══ Charger contenus Supabase AVANT d'afficher, avec timeout 5s ═══
       var curD=window._dossier;
-      if(curD && curD._sbId && _sb){
-        setTimeout(function(){
-          _sbLoadContenus(curD._sbId, function(contenus){
-            if(!contenus || !contenus.investiContents) return;
-            var updated=false;
+      if(curD && curD._sbId && _sb && Object.keys(_investiContents).length===0){
+        var _loaded=false;
+        var _loadTimeout=setTimeout(function(){ if(!_loaded){_loaded=true; loadInvestiSkeleton(_fl);} }, 5000);
+        _sbLoadContenus(curD._sbId, function(contenus){
+          if(_loaded) return; _loaded=true; clearTimeout(_loadTimeout);
+          if(contenus && contenus.investiContents){
             Object.keys(contenus.investiContents).forEach(function(logId){
               var sbHtml=contenus.investiContents[logId]||'';
-              if(sbHtml.length>20 && (!_investiContents[logId] || _investiContents[logId].length<sbHtml.length)){
-                _investiContents[logId]=sbHtml; updated=true;
-              }
+              if(sbHtml.length>20) _investiContents[logId]=sbHtml;
             });
-            if(contenus.skelType && !_activeSkelType) _activeSkelType=contenus.skelType;
-            // Si le contenu Supabase est meilleur que ce qui est affiché, recharger
-            if(updated && _fl && _investiContents[_fl.id] && _investiContents[_fl.id].length>30){
-              var ed2=document.getElementById('editor-investi');
-              if(ed2 && ed2.innerHTML.length<_investiContents[_fl.id].length){
-                ed2.innerHTML=_investiContents[_fl.id].replace(/<\/p>\s*<p([ >])/g,'</p><br><p$1');
-                _fixInvestiImages(ed2);
-              }
-            }
-          });
-        }, 500);
+          }
+          if(contenus && contenus.skelType) _activeSkelType=contenus.skelType;
+          loadInvestiSkeleton(_fl);
+        });
+      } else {
+        loadInvestiSkeleton(_fl);
       }
     }
   }
