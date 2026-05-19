@@ -3430,6 +3430,7 @@ function triggerImgUpload(listId,editorId){
     toast('Tri chronologique de '+files.length+' image(s)...');
     sortFilesByExifDate(files, function(sorted){
       files = sorted;
+      alert('DIAG2: tri OK, lancement compression...');
       toast('Chargement de '+files.length+' image(s)...');
       showProgressBar(files.length);
       loadImagesBatch(files, 0, 2, function(){
@@ -3451,6 +3452,7 @@ function loadImagesBatch(files, startIndex, batchSize, onComplete){
   rd.onload = function(e){
     // Compresser à 800px max avant de stocker
     compressImg(e.target.result, 1200, 0.85, function(compressed){
+      alert('DIAG3: photo compressée ('+Math.round(compressed.length/1024)+'KB), upload Supabase...');
       var imgData = {src: compressed, name: file.name};
       _sharedImages.push(imgData);
       addImgToPanel('fp-images-i-list', imgData);
