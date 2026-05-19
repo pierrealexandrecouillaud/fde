@@ -2118,6 +2118,8 @@ function goTo(pageId){
   }
   if(pageId==='investigation'){
     updateLogsVisites();
+    var _dInfo=window._dossier||{};
+    alert('INVESTI-DIAG: logsVisites='+_logsVisites.length+' _sbId='+(_dInfo._sbId||'VIDE')+' _sb='+!!_sb+' _lc='+_lc);
     var _fl=_logsVisites&&_logsVisites[0];
     if(!_fl){
       // ═══ AUCUN LOGEMENT VISITÉ TROUVÉ → tenter de charger depuis Supabase ═══
