@@ -1496,25 +1496,23 @@ function _sbUpdateStatus(sbId, status) {
 // path: chemin dans le bucket (ex: "abc-123/support_1716050000.jpg")
 // callback(url) : URL publique ou null si erreur
 function _sbUploadFile(file, path, callback) {
-  if (!_sb) { toast('⚠️ Upload: Supabase non initialisé'); if (callback) callback(null); return; }
+  if (!_sb) { alert('DIAG4: Supabase non initialisé!'); if (callback) callback(null); return; }
+  alert('DIAG4: Upload démarré → ' + path.substring(0,50) + ' (' + Math.round(file.size/1024) + 'KB)');
   _sb.storage.from('photos').upload(path, file, {
     contentType: file.type || 'image/jpeg',
     upsert: true
   }).then(function(result) {
     if (result.error) {
-      console.warn('[FDE] Storage upload error:', result.error.message);
-      toast('❌ Upload échoué: ' + result.error.message);
+      alert('DIAG5: ❌ ERREUR UPLOAD: ' + result.error.message);
       if (callback) callback(null);
       return;
     }
     var urlResult = _sb.storage.from('photos').getPublicUrl(path);
     var url = urlResult.data ? urlResult.data.publicUrl : null;
-    console.log('[FDE] Photo uploadée:', path);
-    toast('✅ Photo sauvegardée');
+    alert('DIAG5: ✅ Upload OK! URL=' + (url||'null').substring(0,60));
     if (callback) callback(url);
   }).catch(function(err) {
-    console.error('[FDE] Upload exception:', err);
-    toast('❌ Upload erreur: ' + (err.message || err));
+    alert('DIAG5: ❌ EXCEPTION: ' + (err.message || err));
     if (callback) callback(null);
   });
 }
