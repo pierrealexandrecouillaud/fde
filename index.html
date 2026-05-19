@@ -3421,9 +3421,10 @@ var _imgListId='', _imgEdId='';
 
 function triggerImgUpload(listId,editorId){
   _imgListId=listId; _imgEdId=editorId;
-  var inp=document.getElementById('img-upload-input'); if(!inp) return;
+  var inp=document.getElementById('img-upload-input'); if(!inp){ alert('DIAG: input file introuvable!'); return; }
   inp.onchange=function(){
     var files=Array.from(this.files);
+    alert('DIAG: '+files.length+' fichier(s) sélectionné(s). _sb='+!!_sb+' _sbUser='+!!_sbUser);
     if(files.length===0) return;
     // Garder l'ordre natif du sélecteur iOS (chronologique par défaut)
     toast('Tri chronologique de '+files.length+' image(s)...');
