@@ -2459,10 +2459,10 @@ document.addEventListener('DOMContentLoaded',function(){
 
   
 // Sauvegarder automatiquement avant de quitter la page (bouton retour iOS)
-window.addEventListener('beforeunload', function(){ try{ _saveCurrentRapportSlot(); doSave(); _sbSaveContenus(); }catch(e){} });
-window.addEventListener('pagehide', function(){ try{ doSave(); _sbSaveContenus(); }catch(e){} });
+window.addEventListener('beforeunload', function(){ try{ _saveCurrentRapportSlot(); doSave(); _sbSaveContenus(); _sbSaveLogements(); }catch(e){} });
+window.addEventListener('pagehide', function(){ try{ doSave(); _sbSaveContenus(); _sbSaveLogements(); }catch(e){} });
 // Sur iOS, visibilitychange est plus fiable
-document.addEventListener('visibilitychange', function(){ if(document.hidden){ try{ doSave(); _sbSaveContenus(); }catch(e){} } });
+document.addEventListener('visibilitychange', function(){ if(document.hidden){ try{ doSave(); _sbSaveContenus(); _sbSaveLogements(); }catch(e){} } });
 
 
 });
@@ -4022,7 +4022,10 @@ function _restoreDashboardFromDossiers(){
     (function(dd){ btnR.onclick=function(){
       if(window._dossier && window._dossier._uid === dd._uid){ goTo('dommage'); return; }
       window._dossier=dd;
-      if(!dd._uid || !_loadRapportSlot(dd._uid)){ _viderRapportPourNouvelleInterv(); addLogement(); }
+      if(!dd._uid || !_loadRapportSlot(dd._uid)){
+        if(dd._sbId && _sb){ _restoreFromSupabase(dd, function(){ _syncAllCadres(); }); }
+        else { _viderRapportPourNouvelleInterv(); addLogement(); }
+      }
       _syncAllCadres(); goTo('dommage');
     }; })(d);
     // Bouton Modifier
@@ -6175,7 +6178,10 @@ function _doDashSearch(query){
     (function(dd){ btnR.onclick=function(){
       if(window._dossier && window._dossier._uid === dd._uid){ goTo('dommage'); return; }
       window._dossier=dd;
-      if(!dd._uid || !_loadRapportSlot(dd._uid)){ _viderRapportPourNouvelleInterv(); addLogement(); }
+      if(!dd._uid || !_loadRapportSlot(dd._uid)){
+        if(dd._sbId && _sb){ _restoreFromSupabase(dd, function(){ _syncAllCadres(); }); }
+        else { _viderRapportPourNouvelleInterv(); addLogement(); }
+      }
       _syncAllCadres(); goTo('dommage');
     }; })(d);
     var btnD=document.createElement('button'); btnD.className='btn-action';
@@ -6465,8 +6471,8 @@ function techCreateInterv(isUpdate){
       // Intervention différente → charger ses données
       window._dossier=dd;
       if(!dd._uid || !_loadRapportSlot(dd._uid)){
-        _viderRapportPourNouvelleInterv();
-        addLogement();
+        if(dd._sbId && _sb){ _restoreFromSupabase(dd, function(){ _syncAllCadres(); }); }
+        else { _viderRapportPourNouvelleInterv(); addLogement(); }
       }
       _syncAllCadres();
       goTo('dommage');
@@ -6568,6 +6574,51 @@ function _saveCurrentRapportSlot(){
   // Persistance IDB immédiate (1 slot = 1 clé)
   saveToIDB(_dossierSlots[d._uid], 'fde_slot_'+d._uid);
   try { localStorage.setItem('fde_slot_uids', JSON.stringify(Object.keys(_dossierSlots))); } catch(e){}
+}
+
+// ═══ RESTAURATION DEPUIS SUPABASE quand le slot local est absent ═══
+function _restoreFromSupabase(d, onDone){
+  if(!d._sbId || !_sb){ if(onDone) onDone(); return; }
+  toast('Chargement depuis le serveur...');
+  _viderRapportPourNouvelleInterv();
+  
+  // 1. Charger les logements depuis Supabase
+  _sbLoadLogements(d._sbId, function(logements){
+    if(logements && logements.length){
+      logements.forEach(function(log){
+        addLogement();
+        var lid='log-'+_lc;
+        var occ=document.getElementById(lid+'-occ'); if(occ) occ.value=log.occupant||'';
+        var apt=document.getElementById(lid+'-apt'); if(apt) apt.value=log.appartement||'';
+        var eta=document.getElementById(lid+'-eta'); if(eta) eta.value=log.etage||'';
+        var vis=document.getElementById(lid+'-vis'); if(vis) vis.checked=!!log.visite;
+        var sin=document.getElementById(lid+'-sin'); if(sin) sin.checked=!!log.sinistre;
+      });
+      updateLogsVisites();
+    } else {
+      addLogement();
+    }
+    
+    // 2. Charger les contenus (investigation + conclusion) depuis Supabase
+    _sbLoadContenus(d._sbId, function(contenus){
+      if(contenus){
+        if(contenus.investiContents){
+          Object.keys(contenus.investiContents).forEach(function(logId){
+            if(contenus.investiContents[logId] && contenus.investiContents[logId].length>20){
+              _investiContents[logId]=contenus.investiContents[logId];
+            }
+          });
+        }
+        if(contenus.conclusion){
+          var edC=document.getElementById('editor-conclusion');
+          if(edC) edC.innerHTML=contenus.conclusion;
+        }
+        if(contenus.skelType) _activeSkelType=contenus.skelType;
+      }
+      toast('Dossier restauré depuis le serveur ✓');
+      if(onDone) onDone();
+    });
+  });
 }
 
 function _loadRapportSlot(uid){
