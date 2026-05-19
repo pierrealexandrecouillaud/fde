@@ -1496,23 +1496,22 @@ function _sbUpdateStatus(sbId, status) {
 // path: chemin dans le bucket (ex: "abc-123/support_1716050000.jpg")
 // callback(url) : URL publique ou null si erreur
 function _sbUploadFile(file, path, callback) {
-  if (!_sb) { alert('DIAG4: Supabase non initialisé!'); if (callback) callback(null); return; }
-  alert('DIAG4: Upload démarré → ' + path.substring(0,50) + ' (' + Math.round(file.size/1024) + 'KB)');
+  if (!_sb) { if (callback) callback(null); return; }
   _sb.storage.from('photos').upload(path, file, {
     contentType: file.type || 'image/jpeg',
     upsert: true
   }).then(function(result) {
     if (result.error) {
-      alert('DIAG5: ❌ ERREUR UPLOAD: ' + result.error.message);
+      console.warn('[FDE] Storage upload error:', result.error.message);
       if (callback) callback(null);
       return;
     }
     var urlResult = _sb.storage.from('photos').getPublicUrl(path);
     var url = urlResult.data ? urlResult.data.publicUrl : null;
-    alert('DIAG5: ✅ Upload OK! URL=' + (url||'null').substring(0,60));
+    console.log('[FDE] Photo uploadée:', path);
     if (callback) callback(url);
   }).catch(function(err) {
-    alert('DIAG5: ❌ EXCEPTION: ' + (err.message || err));
+    console.error('[FDE] Upload exception:', err);
     if (callback) callback(null);
   });
 }
@@ -1536,7 +1535,7 @@ function _base64ToBlob(base64) {
 // context: 'support', 'facade', 'investigation', 'conclusion'
 // callback(url): URL publique ou null
 function _sbUploadPhoto(fileOrBase64, context, callback) {
-  if (!_sb || !_sbUser) { toast('⚠️ Non connecté: _sb='+!!_sb+' user='+!!_sbUser); if (callback) callback(null); return; }
+  if (!_sb || !_sbUser) { if (callback) callback(null); return; }
   var d = window._dossier;
   var folderName = 'sans-ref';
   if (d) {
@@ -1546,18 +1545,14 @@ function _sbUploadPhoto(fileOrBase64, context, callback) {
   }
   var timestamp = Date.now();
   var path = folderName + '/' + (context || 'photo') + '_' + timestamp + '.jpg';
-  toast('📤 Upload vers: ' + path.substring(0, 40));
 
   if (typeof fileOrBase64 === 'string' && fileOrBase64.indexOf('data:') === 0) {
     var blob = _base64ToBlob(fileOrBase64);
-    if (!blob) { toast('❌ Conversion base64→blob échouée'); if (callback) callback(null); return; }
-    toast('📦 Blob OK (' + (blob.size/1024).toFixed(0) + ' KB), upload...');
+    if (!blob) { if (callback) callback(null); return; }
     _sbUploadFile(blob, path, callback);
   } else if (fileOrBase64 instanceof Blob || fileOrBase64 instanceof File) {
-    toast('📦 Fichier (' + (fileOrBase64.size/1024).toFixed(0) + ' KB), upload...');
     _sbUploadFile(fileOrBase64, path, callback);
   } else {
-    toast('❌ Type inconnu: ' + typeof fileOrBase64);
     if (callback) callback(null);
   }
 }
@@ -2337,7 +2332,7 @@ document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
       restoreSession();
       var vc=document.getElementById('version-cell');
-      if(vc){var n=new Date();vc.textContent='v3.1-DIAG \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+      if(vc){var n=new Date();vc.textContent='v3.2 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
     },300);
   }
 
@@ -3419,16 +3414,14 @@ var _imgListId='', _imgEdId='';
 
 function triggerImgUpload(listId,editorId){
   _imgListId=listId; _imgEdId=editorId;
-  var inp=document.getElementById('img-upload-input'); if(!inp){ alert('DIAG: input file introuvable!'); return; }
+  var inp=document.getElementById('img-upload-input'); if(!inp) return;
   inp.onchange=function(){
     var files=Array.from(this.files);
-    alert('DIAG: '+files.length+' fichier(s) sélectionné(s). _sb='+!!_sb+' _sbUser='+!!_sbUser);
     if(files.length===0) return;
     // Garder l'ordre natif du sélecteur iOS (chronologique par défaut)
     toast('Tri chronologique de '+files.length+' image(s)...');
     sortFilesByExifDate(files, function(sorted){
       files = sorted;
-      alert('DIAG2: tri OK, lancement compression...');
       toast('Chargement de '+files.length+' image(s)...');
       showProgressBar(files.length);
       loadImagesBatch(files, 0, 2, function(){
@@ -3450,14 +3443,12 @@ function loadImagesBatch(files, startIndex, batchSize, onComplete){
   rd.onload = function(e){
     // Compresser à 800px max avant de stocker
     compressImg(e.target.result, 1200, 0.85, function(compressed){
-      alert('DIAG3: photo compressée ('+Math.round(compressed.length/1024)+'KB), upload Supabase...');
       var imgData = {src: compressed, name: file.name};
       _sharedImages.push(imgData);
       addImgToPanel('fp-images-i-list', imgData);
       addImgToPanel('fp-images-c-list', imgData);
       updateProgressBar(startIndex + 1, files.length);
       // ═══ SUPABASE — Upload en arrière-plan ═══
-      toast('🔍 DIAG: photo compressée, lancement upload...');
       var context = _imgEdId === 'editor-conclusion' ? 'conclusion' : 'investigation';
       _sbUploadPhoto(compressed, context, function(url) {
         if (url) {
