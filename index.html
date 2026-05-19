@@ -746,7 +746,7 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
     <div class="facade-zone" onclick="triggerFacadeUpload()"><img class="facade-img" id="facade-img-i" alt=""><span class="fz-icon">🏠</span><span class="fz-label">Photo façade</span></div>
     <div class="rapport-infos">
       <div class="rapport-ref">AFD83-0001 — Investigation</div>
-      <div class="rapport-meta" id="investi-log-name" style="color:var(--orange);font-weight:600">→ Appuyez sur 🏠 pour sélectionner un logement visité</div>
+      <div id="investi-log-name" style="color:var(--orange);font-weight:600">→ Appuyez sur 🏠 pour sélectionner un logement visité</div>
       <div class="rapport-date">09/05/2026 — Pierre-Alexandre Couillaud</div>
       
     </div>
@@ -6739,7 +6739,8 @@ function _loadRapportSlot(uid){
   _investiContents=slot.investiContents?JSON.parse(JSON.stringify(slot.investiContents)):{};
   _currentLogId=slot.currentLogId||null;
   var edI=document.getElementById('editor-investi');
-  if(edI) setTimeout(function(){ edI.innerHTML=slot.investiHTML||''; }, 600);
+  // NE PAS restaurer investiHTML ici — c'est loadInvestiSkeleton qui gère l'éditeur investigation
+  // L'ancien code écrasait le contenu chargé depuis Supabase 600ms après
   // 6. Conclusion — différé
   var edC=document.getElementById('editor-conclusion');
   if(edC) setTimeout(function(){ edC.innerHTML=slot.conclusion||''; }, 800);
