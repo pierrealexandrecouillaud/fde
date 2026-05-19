@@ -2122,6 +2122,11 @@ function goTo(pageId){
   if(pageId==='investigation'){
     // ═══ SIMPLIFICATION RADICALE — Toujours charger depuis Supabase ═══
     var curD=window._dossier;
+    var _dbg='INV-DBG: _sbId='+(curD?curD._sbId:'NO_DOSSIER')+' _sb='+!!_sb+' _lc='+_lc;
+    updateLogsVisites();
+    _dbg+=' logsVis='+_logsVisites.length;
+    _dbg+=' investiKeys='+Object.keys(_investiContents).join('|');
+    alert(_dbg);
     if(curD && curD._sbId && _sb){
       // 1. Charger logements si absents
       updateLogsVisites();
