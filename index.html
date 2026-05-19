@@ -2119,6 +2119,47 @@ function goTo(pageId){
   if(pageId==='investigation'){
     updateLogsVisites();
     var _fl=_logsVisites&&_logsVisites[0];
+    if(!_fl){
+      // ═══ AUCUN LOGEMENT VISITÉ TROUVÉ → tenter de charger depuis Supabase ═══
+      var curD2=window._dossier;
+      if(curD2 && curD2._sbId && _sb){
+        toast('Chargement des logements...');
+        _sbLoadLogements(curD2._sbId, function(logements){
+          if(!logements || !logements.length) return;
+          // Recréer les logements dans le DOM
+          logements.forEach(function(log){
+            // Vérifier si le logement existe déjà
+            var exists=false;
+            for(var ci=1;ci<=_lc;ci++){
+              var occI=document.getElementById('log-'+ci+'-occ');
+              if(occI && occI.value===log.occupant){ exists=true; break; }
+            }
+            if(!exists){
+              addLogement();
+              var lid='log-'+_lc;
+              var occ=document.getElementById(lid+'-occ'); if(occ) occ.value=log.occupant||'';
+              var apt=document.getElementById(lid+'-apt'); if(apt) apt.value=log.appartement||'';
+              var eta=document.getElementById(lid+'-eta'); if(eta) eta.value=log.etage||'';
+              var vis=document.getElementById(lid+'-vis'); if(vis) vis.checked=!!log.visite;
+              var sin=document.getElementById(lid+'-sin'); if(sin) sin.checked=!!log.sinistre;
+            }
+          });
+          updateLogsVisites();
+          // Charger contenus
+          _sbLoadContenus(curD2._sbId, function(contenus){
+            if(contenus && contenus.investiContents){
+              Object.keys(contenus.investiContents).forEach(function(logId){
+                if(contenus.investiContents[logId] && contenus.investiContents[logId].length>20)
+                  _investiContents[logId]=contenus.investiContents[logId];
+              });
+            }
+            if(contenus && contenus.skelType) _activeSkelType=contenus.skelType;
+            var fl3=_logsVisites&&_logsVisites[0];
+            if(fl3){ loadInvestiSkeleton(fl3); toast('Investigation restaurée ✓'); }
+          });
+        });
+      }
+    }
     if(_fl){
       // ═══ LOCAL D'ABORD (instantané) puis Supabase met à jour en arrière-plan ═══
       loadInvestiSkeleton(_fl);
