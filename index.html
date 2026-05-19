@@ -1538,9 +1538,8 @@ function _base64ToBlob(base64) {
 // context: 'support', 'facade', 'investigation', 'conclusion'
 // callback(url): URL publique ou null
 function _sbUploadPhoto(fileOrBase64, context, callback) {
-  if (!_sb || !_sbUser) { toast('⚠️ Photo: non connecté (_sb='+!!_sb+' _sbUser='+!!_sbUser+')'); if (callback) callback(null); return; }
+  if (!_sb || !_sbUser) { toast('⚠️ Non connecté: _sb='+!!_sb+' user='+!!_sbUser); if (callback) callback(null); return; }
   var d = window._dossier;
-  // Nom de dossier lisible : ref_client (ou UUID si pas de ref)
   var folderName = 'sans-ref';
   if (d) {
     var ref = (d.ref || '').replace(/[^a-zA-Z0-9_-]/g, '');
@@ -1549,15 +1548,18 @@ function _sbUploadPhoto(fileOrBase64, context, callback) {
   }
   var timestamp = Date.now();
   var path = folderName + '/' + (context || 'photo') + '_' + timestamp + '.jpg';
+  toast('📤 Upload vers: ' + path.substring(0, 40));
 
   if (typeof fileOrBase64 === 'string' && fileOrBase64.indexOf('data:') === 0) {
-    // C'est du base64 → convertir en Blob
     var blob = _base64ToBlob(fileOrBase64);
-    if (!blob) { if (callback) callback(null); return; }
+    if (!blob) { toast('❌ Conversion base64→blob échouée'); if (callback) callback(null); return; }
+    toast('📦 Blob OK (' + (blob.size/1024).toFixed(0) + ' KB), upload...');
     _sbUploadFile(blob, path, callback);
   } else if (fileOrBase64 instanceof Blob || fileOrBase64 instanceof File) {
+    toast('📦 Fichier (' + (fileOrBase64.size/1024).toFixed(0) + ' KB), upload...');
     _sbUploadFile(fileOrBase64, path, callback);
   } else {
+    toast('❌ Type inconnu: ' + typeof fileOrBase64);
     if (callback) callback(null);
   }
 }
