@@ -2101,6 +2101,10 @@ function goTo(pageId){
         _syncAllCadres();
       }
       doSave();
+      // ═══ Sauvegarder vers Supabase à chaque navigation ═══
+      try{saveCurrentInvesti();}catch(e){}
+      try{_sbSaveContenus();}catch(e){}
+      try{_sbSaveLogements();}catch(e){}
     }catch(e){}
   }, 100);
   // Mise à jour du statut de l'intervention
@@ -2778,6 +2782,11 @@ function addLogement(){
       '</div>'+
     '</div>';
   c.appendChild(d);
+  // ═══ SAUVEGARDE IMMÉDIATE — sauver logements dans Supabase dès qu'une coche change ═══
+  var visEl=document.getElementById(id+'-vis');
+  var sinEl=document.getElementById(id+'-sin');
+  if(visEl) visEl.addEventListener('change',function(){ updateLogsVisites(); try{_sbSaveLogements();}catch(e){} });
+  if(sinEl) sinEl.addEventListener('change',function(){ updateLogsVisites(); try{_sbSaveLogements();}catch(e){} });
 }
 
 function validateLogement(id){
@@ -2798,6 +2807,8 @@ function validateLogement(id){
   var tb=document.getElementById(id+'-tbody');
   if(tb && tb.children.length===0) addPiece(id);
   updateLogsVisites();
+  // Sauvegarder immédiatement dans Supabase
+  try{_sbSaveLogements();}catch(e){}
   autoSave();
   // ═══ SUPABASE — Sync immédiate des logements ═══
   _sbSaveLogements();
