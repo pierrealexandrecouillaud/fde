@@ -4197,13 +4197,11 @@ function restoreSession(){
             // PAS trouvé par _sbId → chercher par date+client (le _sbId local est peut-être faux)
             var matched = false;
             _allDossiers.forEach(function(d) {
-              if (!matched && d.date === sbd.date && d._sbId !== sbd._sbId) {
-                // Match par date → corriger le _sbId
+              if (!matched && d.date === sbd.date && d.client === sbd.client && d._sbId !== sbd._sbId) {
                 console.log('[FDE] Fix _sbId: ' + d._sbId + ' → ' + sbd._sbId);
                 d._sbId = sbd._sbId;
                 d.ref = sbd.ref; d.client = sbd.client; d.ville = sbd.ville;
                 d._status = sbd._status;
-                // Mettre à jour window._dossier si c'est le dossier actif
                 if (window._dossier && window._dossier._uid === d._uid) {
                   window._dossier._sbId = sbd._sbId;
                 }
