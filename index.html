@@ -2168,6 +2168,9 @@ function goTo(pageId){
         var _loadTimeout=setTimeout(function(){ if(!_loaded){_loaded=true; loadInvestiSkeleton(_fl);} }, 5000);
         _sbLoadContenus(curD._sbId, function(contenus){
           if(_loaded) return; _loaded=true; clearTimeout(_loadTimeout);
+          var _keys=contenus&&contenus.investiContents?Object.keys(contenus.investiContents):[];
+          var _lens=_keys.map(function(k){return k+'='+((contenus.investiContents[k]||'').length);});
+          alert('SB-LOAD: '+_keys.length+' entrées. '+_lens.join(', ')+' skelType='+(contenus&&contenus.skelType||''));
           if(contenus && contenus.investiContents){
             Object.keys(contenus.investiContents).forEach(function(logId){
               var sbHtml=contenus.investiContents[logId]||'';
