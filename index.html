@@ -2122,11 +2122,6 @@ function goTo(pageId){
   if(pageId==='investigation'){
     // ═══ SIMPLIFICATION RADICALE — Toujours charger depuis Supabase ═══
     var curD=window._dossier;
-    var _dbg='INV-DBG: _sbId='+(curD?curD._sbId:'NO_DOSSIER')+' _sb='+!!_sb+' _lc='+_lc;
-    updateLogsVisites();
-    _dbg+=' logsVis='+_logsVisites.length;
-    _dbg+=' investiKeys='+Object.keys(_investiContents).join('|');
-    alert(_dbg);
     if(curD && curD._sbId && _sb){
       // 1. Charger logements si absents
       updateLogsVisites();
@@ -2972,35 +2967,40 @@ function _refreshLogementsFromSupabase(d){
 // ═══ Charger investigation depuis Supabase et afficher ═══
 function _loadInvestiFromSupabase(curD){
   _sbLoadContenus(curD._sbId, function(contenus){
-    if(contenus && contenus.investiContents){
-      // Copier tous les contenus
-      var sbKeys=[];
-      Object.keys(contenus.investiContents).forEach(function(logId){
-        var h=contenus.investiContents[logId]||'';
-        if(h.length>20){ _investiContents[logId]=h; sbKeys.push(logId); }
-      });
-      // Si le premier logement visité a un ID différent de celui dans Supabase → copier
-      updateLogsVisites();
-      var fl=_logsVisites&&_logsVisites[0];
-      if(fl && !_investiContents[fl.id] && sbKeys.length>0){
-        _investiContents[fl.id]=contenus.investiContents[sbKeys[0]];
-      }
-      // Si aucun logement visité mais des contenus existent → forcer la coche Visité
-      if(!fl && sbKeys.length>0 && _lc>0){
-        for(var ci=1;ci<=_lc;ci++){
-          var v=document.getElementById('log-'+ci+'-vis');
-          if(v){v.checked=true; break;}
-        }
-        updateLogsVisites();
-        fl=_logsVisites&&_logsVisites[0];
-        if(fl && !_investiContents[fl.id]) _investiContents[fl.id]=contenus.investiContents[sbKeys[0]];
-      }
-    }
+    // Conclusion → directement dans l'éditeur
     if(contenus && contenus.conclusion){
       var edC=document.getElementById('editor-conclusion');
       if(edC && (!edC.innerHTML || edC.innerHTML.length<30)) edC.innerHTML=contenus.conclusion;
     }
     if(contenus && contenus.skelType) _activeSkelType=contenus.skelType;
+    
+    // Investigation → trouver le contenu le plus long et l'afficher directement
+    var edI=document.getElementById('editor-investi');
+    if(contenus && contenus.investiContents && edI){
+      var bestKey='', bestLen=0;
+      Object.keys(contenus.investiContents).forEach(function(logId){
+        var h=contenus.investiContents[logId]||'';
+        _investiContents[logId]=h; // mettre en cache
+        if(h.length>bestLen){ bestLen=h.length; bestKey=logId; }
+      });
+      
+      // Écrire DIRECTEMENT dans l'éditeur (comme la conclusion)
+      if(bestKey && bestLen>30){
+        edI.innerHTML=contenus.investiContents[bestKey].replace(/<\/p>\s*<p([ >])/g,'</p><br><p$1');
+        _fixInvestiImages(edI);
+        _currentLogId=bestKey;
+        // Mettre à jour le label du logement
+        updateLogsVisites();
+        var fl=_logsVisites&&_logsVisites[0];
+        if(fl){
+          var nm=document.getElementById('investi-log-name');
+          if(nm){ nm.textContent=fl.nom||'Logement'; nm.style.color='var(--orange)'; }
+        }
+        return; // ← TERMINÉ, pas besoin de loadInvestiSkeleton
+      }
+    }
+    
+    // Fallback : pas de contenu Supabase → utiliser loadInvestiSkeleton
     updateLogsVisites();
     var fl2=_logsVisites&&_logsVisites[0];
     if(fl2) loadInvestiSkeleton(fl2);
