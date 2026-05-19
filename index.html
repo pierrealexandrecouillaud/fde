@@ -2339,7 +2339,7 @@ document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
       restoreSession();
       var vc=document.getElementById('version-cell');
-      if(vc){var n=new Date();vc.textContent='v3.0-supabase \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+      if(vc){var n=new Date();vc.textContent='v3.1-DIAG \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
     },300);
   }
 
@@ -3456,6 +3456,7 @@ function loadImagesBatch(files, startIndex, batchSize, onComplete){
       addImgToPanel('fp-images-c-list', imgData);
       updateProgressBar(startIndex + 1, files.length);
       // ═══ SUPABASE — Upload en arrière-plan ═══
+      toast('🔍 DIAG: photo compressée, lancement upload...');
       var context = _imgEdId === 'editor-conclusion' ? 'conclusion' : 'investigation';
       _sbUploadPhoto(compressed, context, function(url) {
         if (url) {
