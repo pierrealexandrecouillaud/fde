@@ -1496,21 +1496,26 @@ function _sbUpdateStatus(sbId, status) {
 // path: chemin dans le bucket (ex: "abc-123/support_1716050000.jpg")
 // callback(url) : URL publique ou null si erreur
 function _sbUploadFile(file, path, callback) {
-  if (!_sb) { if (callback) callback(null); return; }
+  if (!_sb) { toast('⚠️ Upload: Supabase non initialisé'); if (callback) callback(null); return; }
   _sb.storage.from('photos').upload(path, file, {
     contentType: file.type || 'image/jpeg',
     upsert: true
   }).then(function(result) {
     if (result.error) {
       console.warn('[FDE] Storage upload error:', result.error.message);
+      toast('❌ Upload échoué: ' + result.error.message);
       if (callback) callback(null);
       return;
     }
-    // Récupérer l'URL publique
     var urlResult = _sb.storage.from('photos').getPublicUrl(path);
     var url = urlResult.data ? urlResult.data.publicUrl : null;
     console.log('[FDE] Photo uploadée:', path);
+    toast('✅ Photo sauvegardée');
     if (callback) callback(url);
+  }).catch(function(err) {
+    console.error('[FDE] Upload exception:', err);
+    toast('❌ Upload erreur: ' + (err.message || err));
+    if (callback) callback(null);
   });
 }
 
@@ -1533,7 +1538,7 @@ function _base64ToBlob(base64) {
 // context: 'support', 'facade', 'investigation', 'conclusion'
 // callback(url): URL publique ou null
 function _sbUploadPhoto(fileOrBase64, context, callback) {
-  if (!_sb || !_sbUser) { if (callback) callback(null); return; }
+  if (!_sb || !_sbUser) { toast('⚠️ Photo: non connecté (_sb='+!!_sb+' _sbUser='+!!_sbUser+')'); if (callback) callback(null); return; }
   var d = window._dossier;
   // Nom de dossier lisible : ref_client (ou UUID si pas de ref)
   var folderName = 'sans-ref';
