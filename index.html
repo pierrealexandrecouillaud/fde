@@ -2361,6 +2361,19 @@ document.addEventListener('DOMContentLoaded',function(){
   // Initialiser Supabase en premier
   _initSupabase();
 
+  // ═══ AUTO-SAVE SUPABASE — sauvegarder le contenu investigation toutes les 30s d'édition ═══
+  var _sbEditorTimer=null;
+  ['editor-investi','editor-conclusion'].forEach(function(edId){
+    var edEl=document.getElementById(edId);
+    if(edEl) edEl.addEventListener('input',function(){
+      clearTimeout(_sbEditorTimer);
+      _sbEditorTimer=setTimeout(function(){
+        try{saveCurrentInvesti();}catch(e){}
+        try{_sbSaveContenus();}catch(e){}
+      }, 15000); // 15s après dernière frappe
+    });
+  });
+
   var btn=document.getElementById('btn-login');
   if(!btn) return;
   var _loginDone=false;
@@ -3469,6 +3482,11 @@ function triggerImgUpload(listId,editorId){
         inp.value='';
         toast(files.length+' image(s) chargée(s) ✓');
         autoSave();
+        // ═══ FORCER la sauvegarde Supabase immédiate ═══
+        setTimeout(function(){
+          try{saveCurrentInvesti();}catch(e){}
+          try{_sbSaveContenus();}catch(e){}
+        }, 2000);
       });
     });
   };
@@ -3642,6 +3660,8 @@ function insertImgAtCursor(src){
           var edNow=document.getElementById(editorId);
           if(edNow) _investiContents[_currentLogId]=edNow.innerHTML;
         }
+        // Sauvegarder vers Supabase immédiatement
+        try{_sbSaveContenus();}catch(e){}
       }
     });
   });
