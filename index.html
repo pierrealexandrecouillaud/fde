@@ -2123,22 +2123,24 @@ function goTo(pageId){
       // ═══ SUPABASE = SOURCE DE VÉRITÉ — charger depuis le serveur EN PREMIER ═══
       var curD=window._dossier;
       if(curD && curD._sbId && _sb){
+        var _goDone=false;
+        var _goTimeout=setTimeout(function(){
+          if(!_goDone){ _goDone=true; loadInvestiSkeleton(_fl); }
+        }, 4000);
         _sbLoadContenus(curD._sbId, function(contenus){
+          if(_goDone) return; _goDone=true; clearTimeout(_goTimeout);
           if(contenus && contenus.investiContents){
             Object.keys(contenus.investiContents).forEach(function(logId){
               var sbHtml = contenus.investiContents[logId] || '';
-              // Supabase gagne si le contenu local est vide ou plus court
               if(sbHtml.length > 20 && (!_investiContents[logId] || _investiContents[logId].length < sbHtml.length)){
                 _investiContents[logId] = sbHtml;
               }
             });
           }
           if(contenus && contenus.skelType && !_activeSkelType) _activeSkelType=contenus.skelType;
-          // Charger le premier logement avec les données fraîches
           loadInvestiSkeleton(_fl);
         });
       } else {
-        // Pas de Supabase → fallback local
         setTimeout(function(){ loadInvestiSkeleton(_fl); }, 150);
       }
     }
@@ -2886,9 +2888,14 @@ function loadInvestiSkeleton(log){
     // PAS DE CONTENU LOCAL → tenter de charger depuis Supabase avant de créer un squelette vide
     var curD=window._dossier;
     if(curD && curD._sbId && _sb){
-      // Afficher un placeholder pendant le chargement
       ed.innerHTML='<p style="color:#94a3b8;font-style:italic">Chargement depuis le serveur...</p>';
+      var _sbDone=false;
+      // Timeout 5s — si Supabase ne répond pas, charger le squelette vide
+      var _sbTimeout=setTimeout(function(){
+        if(!_sbDone){ _sbDone=true; _loadEmptySkeleton(ed, label); toast('Serveur injoignable, squelette vide chargé'); }
+      }, 5000);
       _sbLoadContenus(curD._sbId, function(contenus){
+        if(_sbDone) return; _sbDone=true; clearTimeout(_sbTimeout);
         if(contenus && contenus.investiContents){
           Object.keys(contenus.investiContents).forEach(function(logId){
             if(contenus.investiContents[logId] && contenus.investiContents[logId].length>20){
@@ -2897,7 +2904,6 @@ function loadInvestiSkeleton(log){
           });
         }
         if(contenus && contenus.skelType && !_activeSkelType) _activeSkelType=contenus.skelType;
-        // Réessayer avec le contenu fraîchement chargé
         if(_investiContents[log.id] && _investiContents[log.id].length>30){
           var _rc2=_investiContents[log.id];
           _rc2=_rc2.replace(/<\/p>\s*<p([ >])/g,'</p><br><p$1');
@@ -2905,12 +2911,10 @@ function loadInvestiSkeleton(log){
           _fixInvestiImages(ed);
           toast('Contenu restauré depuis le serveur : '+log.nom);
         } else {
-          // Vraiment rien trouvé → charger le squelette vide
           _loadEmptySkeleton(ed, label);
         }
       });
     } else {
-      // Pas de connexion Supabase → squelette vide
       _loadEmptySkeleton(ed, label);
     }
   }
