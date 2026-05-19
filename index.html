@@ -2120,28 +2120,32 @@ function goTo(pageId){
     updateLogsVisites();
     var _fl=_logsVisites&&_logsVisites[0];
     if(_fl){
-      // ═══ SUPABASE = SOURCE DE VÉRITÉ — charger depuis le serveur EN PREMIER ═══
+      // ═══ LOCAL D'ABORD (instantané) puis Supabase met à jour en arrière-plan ═══
+      loadInvestiSkeleton(_fl);
+      // Rafraîchir depuis Supabase en arrière-plan
       var curD=window._dossier;
       if(curD && curD._sbId && _sb){
-        var _goDone=false;
-        var _goTimeout=setTimeout(function(){
-          if(!_goDone){ _goDone=true; loadInvestiSkeleton(_fl); }
-        }, 4000);
-        _sbLoadContenus(curD._sbId, function(contenus){
-          if(_goDone) return; _goDone=true; clearTimeout(_goTimeout);
-          if(contenus && contenus.investiContents){
+        setTimeout(function(){
+          _sbLoadContenus(curD._sbId, function(contenus){
+            if(!contenus || !contenus.investiContents) return;
+            var updated=false;
             Object.keys(contenus.investiContents).forEach(function(logId){
-              var sbHtml = contenus.investiContents[logId] || '';
-              if(sbHtml.length > 20 && (!_investiContents[logId] || _investiContents[logId].length < sbHtml.length)){
-                _investiContents[logId] = sbHtml;
+              var sbHtml=contenus.investiContents[logId]||'';
+              if(sbHtml.length>20 && (!_investiContents[logId] || _investiContents[logId].length<sbHtml.length)){
+                _investiContents[logId]=sbHtml; updated=true;
               }
             });
-          }
-          if(contenus && contenus.skelType && !_activeSkelType) _activeSkelType=contenus.skelType;
-          loadInvestiSkeleton(_fl);
-        });
-      } else {
-        setTimeout(function(){ loadInvestiSkeleton(_fl); }, 150);
+            if(contenus.skelType && !_activeSkelType) _activeSkelType=contenus.skelType;
+            // Si le contenu Supabase est meilleur que ce qui est affiché, recharger
+            if(updated && _fl && _investiContents[_fl.id] && _investiContents[_fl.id].length>30){
+              var ed2=document.getElementById('editor-investi');
+              if(ed2 && ed2.innerHTML.length<_investiContents[_fl.id].length){
+                ed2.innerHTML=_investiContents[_fl.id].replace(/<\/p>\s*<p([ >])/g,'</p><br><p$1');
+                _fixInvestiImages(ed2);
+              }
+            }
+          });
+        }, 500);
       }
     }
   }
@@ -2885,37 +2889,27 @@ function loadInvestiSkeleton(log){
     _fixInvestiImages(ed);
     toast('Contenu restauré : '+log.nom);
   } else {
-    // PAS DE CONTENU LOCAL → tenter de charger depuis Supabase avant de créer un squelette vide
+    // PAS DE CONTENU LOCAL → charger le squelette vide IMMÉDIATEMENT
+    _loadEmptySkeleton(ed, label);
+    // Tenter Supabase en arrière-plan
     var curD=window._dossier;
     if(curD && curD._sbId && _sb){
-      ed.innerHTML='<p style="color:#94a3b8;font-style:italic">Chargement depuis le serveur...</p>';
-      var _sbDone=false;
-      // Timeout 5s — si Supabase ne répond pas, charger le squelette vide
-      var _sbTimeout=setTimeout(function(){
-        if(!_sbDone){ _sbDone=true; _loadEmptySkeleton(ed, label); toast('Serveur injoignable, squelette vide chargé'); }
-      }, 5000);
       _sbLoadContenus(curD._sbId, function(contenus){
-        if(_sbDone) return; _sbDone=true; clearTimeout(_sbTimeout);
-        if(contenus && contenus.investiContents){
-          Object.keys(contenus.investiContents).forEach(function(logId){
-            if(contenus.investiContents[logId] && contenus.investiContents[logId].length>20){
-              _investiContents[logId]=contenus.investiContents[logId];
-            }
-          });
-        }
-        if(contenus && contenus.skelType && !_activeSkelType) _activeSkelType=contenus.skelType;
+        if(!contenus || !contenus.investiContents) return;
+        Object.keys(contenus.investiContents).forEach(function(logId){
+          if(contenus.investiContents[logId] && contenus.investiContents[logId].length>20){
+            _investiContents[logId]=contenus.investiContents[logId];
+          }
+        });
+        if(contenus.skelType && !_activeSkelType) _activeSkelType=contenus.skelType;
+        // Si Supabase a du contenu pour CE logement, recharger
         if(_investiContents[log.id] && _investiContents[log.id].length>30){
           var _rc2=_investiContents[log.id];
-          _rc2=_rc2.replace(/<\/p>\s*<p([ >])/g,'</p><br><p$1');
-          ed.innerHTML=_rc2;
+          ed.innerHTML=_rc2.replace(/<\/p>\s*<p([ >])/g,'</p><br><p$1');
           _fixInvestiImages(ed);
           toast('Contenu restauré depuis le serveur : '+log.nom);
-        } else {
-          _loadEmptySkeleton(ed, label);
         }
       });
-    } else {
-      _loadEmptySkeleton(ed, label);
     }
   }
 }
