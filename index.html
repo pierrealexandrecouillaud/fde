@@ -2942,6 +2942,25 @@ function loadInvestiSkeleton(log){
   }
 }
 
+// ═══ Rafraîchir les coches Visité/Sinistré depuis Supabase ═══
+function _refreshLogementsFromSupabase(d){
+  if(!d||!d._sbId||!_sb) return;
+  _sbLoadLogements(d._sbId, function(logements){
+    if(!logements||!logements.length) return;
+    logements.forEach(function(log){
+      for(var ci=1;ci<=_lc;ci++){
+        var occ=document.getElementById('log-'+ci+'-occ');
+        if(occ && (occ.value||'').replace(/\s+/g,'')===(log.occupant||'').replace(/\s+/g,'')){
+          var vis=document.getElementById('log-'+ci+'-vis'); if(vis) vis.checked=!!log.visite;
+          var sin=document.getElementById('log-'+ci+'-sin'); if(sin) sin.checked=!!log.sinistre;
+          break;
+        }
+      }
+    });
+    updateLogsVisites();
+  });
+}
+
 // ═══ Charger investigation depuis Supabase et afficher ═══
 function _loadInvestiFromSupabase(curD){
   _sbLoadContenus(curD._sbId, function(contenus){
@@ -4082,6 +4101,8 @@ function _restoreDashboardFromDossiers(){
         else { _viderRapportPourNouvelleInterv(); addLogement(); }
       }
       _syncAllCadres(); goTo('dommage');
+      // ═══ Rafraîchir coches depuis Supabase (le slot ne les préserve pas) ═══
+      _refreshLogementsFromSupabase(dd);
     }; })(d);
     // Bouton Modifier
     var btnM=document.createElement('button'); btnM.className='btn-action';
@@ -6253,6 +6274,7 @@ function _doDashSearch(query){
         else { _viderRapportPourNouvelleInterv(); addLogement(); }
       }
       _syncAllCadres(); goTo('dommage');
+      _refreshLogementsFromSupabase(dd);
     }; })(d);
     var btnD=document.createElement('button'); btnD.className='btn-action';
     btnD.style.cssText='background:var(--red);color:white;border-color:var(--red);touch-action:manipulation';
@@ -6546,6 +6568,7 @@ function techCreateInterv(isUpdate){
       }
       _syncAllCadres();
       goTo('dommage');
+      _refreshLogementsFromSupabase(dd);
     }; })(d);
     var btnM=document.createElement('button'); btnM.className='btn-action';
     btnM.style.cssText='background:#1e293b;color:white;border-color:#1e293b;touch-action:manipulation';
