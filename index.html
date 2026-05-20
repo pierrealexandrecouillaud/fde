@@ -2046,8 +2046,10 @@ function _recoverSharedImages(){
     var ref=(d.ref||'').replace(/[^a-zA-Z0-9_-]/g,'');
     var client=(d.client||'').replace(/[^a-zA-Z0-9_-]/g,'').substring(0,30);
     var folder=(ref||'noref')+'_'+(client||'noclient');
+    console.log('[FDE] Galerie: listing Storage folder "'+folder+'"');
     _sb.storage.from('photos').list(folder,{limit:200}).then(function(r){
-      if(r.error||!r.data||!r.data.length) return;
+      if(r.error){ console.warn('[FDE] Galerie erreur:', r.error.message); return; }
+      if(!r.data||!r.data.length){ console.log('[FDE] Galerie: dossier vide'); return; }
       var added=0;
       r.data.forEach(function(f){
         if(!f.name||f.name.indexOf('rapport_')===0||f.name==='logo.jpg') return;
@@ -2127,6 +2129,12 @@ function goTo(pageId){
     if(curD && curD._sbId && _sb){
       _loadInvestiFromSupabase(curD);
     }
+    // Charger la galerie d'images depuis Supabase Storage
+    _recoverSharedImages();
+  }
+  if(pageId==='conclusion'){
+    // Charger la galerie d'images depuis Supabase Storage
+    _recoverSharedImages();
   }
   if(pageId==='tableau'){
     // Recharger les photos du tableau progressivement
