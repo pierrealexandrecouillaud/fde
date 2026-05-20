@@ -2971,8 +2971,13 @@ function _loadInvestiFromSupabase(curD){
         if(h.length>bestContent.length) bestContent=h;
       });
       if(bestContent.length>30){
-        console.log('[FDE] ✅ Investigation → éditeur: '+bestContent.length+' chars');
-        edI.innerHTML=bestContent;
+        // Ne pas écrire si l'éditeur a déjà le bon contenu (évite les doublons visuels)
+        if(edI.innerHTML.length < bestContent.length * 0.8){
+          console.log('[FDE] ✅ Investigation → éditeur: '+bestContent.length+' chars');
+          edI.innerHTML=bestContent;
+          _fixInvestiImages(edI);
+        }
+        _currentLogId = Object.keys(contenus.investiContents)[0] || _currentLogId;
         _fixInvestiImages(edI);
         // Mettre à jour le label
         var nm=document.getElementById('investi-log-name');
@@ -4262,6 +4267,18 @@ function restoreSession(){
           _restoreDashboardFromDossiers();
           console.log('[FDE] +' + added + ' intervention(s) ajoutée(s) depuis Supabase');
         }
+        // ═══ SYNC SUPPRESSION — retirer les dossiers locaux supprimés sur le serveur ═══
+        var sbIds = {};
+        sbDossiers.forEach(function(sbd){ sbIds[sbd._sbId]=true; });
+        var removed=0;
+        _allDossiers = _allDossiers.filter(function(d){
+          if(d._sbId && !sbIds[d._sbId]){
+            console.log('[FDE] Dossier supprimé du serveur, retiré localement: '+d._sbId.substring(0,8));
+            removed++; return false;
+          }
+          return true;
+        });
+        if(removed>0) _restoreDashboardFromDossiers();
         // Sauvegarder le merge localement
         try { localStorage.setItem('fde_all_dossiers_ls', JSON.stringify(_allDossiers)); } catch(e){}
 
