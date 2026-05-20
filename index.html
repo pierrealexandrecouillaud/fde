@@ -2332,8 +2332,9 @@ document.addEventListener('DOMContentLoaded',function(){
   // Initialiser Supabase en premier
   _initSupabase();
 
-  // ═══ AUTO-SAVE SUPABASE — sauvegarder le contenu investigation toutes les 30s d'édition ═══
+  // ═══ AUTO-SAVE SUPABASE — sauvegarder le contenu investigation toutes les 10s d'édition ═══
   var _sbEditorTimer=null;
+  var _sbPeriodicTimer=null;
   ['editor-investi','editor-conclusion'].forEach(function(edId){
     var edEl=document.getElementById(edId);
     if(edEl) edEl.addEventListener('input',function(){
@@ -2341,9 +2342,19 @@ document.addEventListener('DOMContentLoaded',function(){
       _sbEditorTimer=setTimeout(function(){
         try{saveCurrentInvesti();}catch(e){}
         try{_sbSaveContenus();}catch(e){}
-      }, 15000); // 15s après dernière frappe
+      }, 5000); // 5s après dernière frappe
     });
   });
+  // Sauvegarde périodique toutes les 10s quand on est sur investigation ou conclusion
+  setInterval(function(){
+    var activePage=document.querySelector('.page.active');
+    if(!activePage) return;
+    var pid=activePage.id;
+    if(pid==='page-investigation'||pid==='page-conclusion'){
+      try{saveCurrentInvesti();}catch(e){}
+      try{_sbSaveContenus();}catch(e){}
+    }
+  }, 10000);
 
   var btn=document.getElementById('btn-login');
   if(!btn) return;
