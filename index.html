@@ -3795,6 +3795,7 @@ function doSave(){
       currentLogId:_currentLogId,
       conclusion:edConcluNow?_sanitizeInvestiHTML(edConcluNow.innerHTML):'',
       investigationDirect:edInvNow?_sanitizeInvestiHTML(edInvNow.innerHTML):'',
+      investigationDossierUid:window._dossier?window._dossier._uid:'',
       logements:logementsData,
       phc:_phc,
       lc:_lc, pc:_pc,
@@ -3809,6 +3810,7 @@ function doSave(){
         currentLogId:saveData.currentLogId,
         conclusion:(saveData.conclusion||'').replace(/<img[^>]*>/g,''),
         investigationDirect:(saveData.investigationDirect||'').replace(/<img[^>]*>/g,''),
+        investigationDossierUid:saveData.investigationDossierUid||'',
         logements:saveData.logements,
         phc:saveData.phc, lc:saveData.lc, pc:saveData.pc,
         investiContents:{}
@@ -4337,10 +4339,14 @@ function _doRestoreSession(data){
     if(data.investiContents) _investiContents = data.investiContents;
     if(data.currentLogId) _currentLogId = data.currentLogId;
     // Différer la restauration de la conclusion
-    // L'investigation est chargée PAR DOSSIER via _loadInvestiFromSupabase (pas globalement)
     setTimeout(function(){
       if(data.conclusion){ var ed=document.getElementById('editor-conclusion'); if(ed) ed.innerHTML=data.conclusion; }
     }, 800);
+    // Sauver les données investigation pour restauration au clic "Remplir"
+    window._pendingInvestigation = {
+      html: data.investigationDirect || '',
+      dossierUid: data.investigationDossierUid || ''
+    };
     // Restaurer les logements
     if(data.logements && data.logements.length>0){
       var cont=document.getElementById('logements-container');
@@ -6788,9 +6794,19 @@ function _loadRapportSlot(uid){
   _investiContents=slot.investiContents?JSON.parse(JSON.stringify(slot.investiContents)):{};
   _currentLogId=slot.currentLogId||null;
   var edI=document.getElementById('editor-investi');
-  // Restaurer l'investigation depuis le SLOT DU DOSSIER (pas la session globale)
-  if(edI && slot.investiHTML && slot.investiHTML.length>30){
-    setTimeout(function(){ edI.innerHTML=slot.investiHTML; _fixInvestiImages(edI); }, 600);
+  // Restaurer l'investigation depuis le SLOT DU DOSSIER
+  if(edI){
+    var investHTML = slot.investiHTML || '';
+    // Si le slot n'a rien, utiliser les données globales SI le dossier correspond
+    if(investHTML.length<30 && window._pendingInvestigation){
+      var pi=window._pendingInvestigation;
+      if(pi.html && pi.html.length>30 && pi.dossierUid===uid){
+        investHTML=pi.html;
+      }
+    }
+    if(investHTML.length>30){
+      setTimeout(function(){ edI.innerHTML=investHTML; _fixInvestiImages(edI); }, 600);
+    }
   }
   // 6. Conclusion — différé
   var edC=document.getElementById('editor-conclusion');
