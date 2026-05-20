@@ -4304,10 +4304,12 @@ function _doRestoreSession(data){
     if(data.dossier){ window._dossier=data.dossier; }
     if(data.investiContents) _investiContents = data.investiContents;
     if(data.currentLogId) _currentLogId = data.currentLogId;
-    // Différer la restauration de la conclusion uniquement
-    // L'investigation est gérée par _loadInvestiFromSupabase (pas de restauration locale)
+    // Différer la restauration des éditeurs (conclusion ET investigation)
     setTimeout(function(){
       if(data.conclusion){ var ed=document.getElementById('editor-conclusion'); if(ed) ed.innerHTML=data.conclusion; }
+      if(_currentLogId && _investiContents[_currentLogId]){
+        var edi=document.getElementById('editor-investi'); if(edi){ edi.innerHTML=_investiContents[_currentLogId]; _fixInvestiImages(edi); }
+      }
     }, 800);
     // Restaurer les logements
     if(data.logements && data.logements.length>0){
