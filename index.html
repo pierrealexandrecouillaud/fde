@@ -3896,6 +3896,7 @@ function deleteDossier(uid){
   // Trouver le dossier pour récupérer l'ID Supabase
   var sbId = null;
   _allDossiers.forEach(function(d){ if(d._uid===uid && d._sbId) sbId=d._sbId; });
+  console.log('[FDE] Delete dossier: uid='+uid+' sbId='+(sbId||'NULL'));
   // Supprimer de _allDossiers
   _allDossiers=_allDossiers.filter(function(x){ return x._uid!==uid; });
   // Supprimer le slot mémoire
