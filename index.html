@@ -3907,8 +3907,18 @@ function deleteDossier(uid){
     localStorage.setItem('fde_all_dossiers_ls', JSON.stringify(_allDossiers));
     localStorage.setItem('fde_slot_uids', JSON.stringify(Object.keys(_dossierSlots)));
   } catch(e){}
-  // ═══ SUPABASE — Supprimer l'intervention du serveur ═══
-  if (sbId) _sbDeleteIntervention(sbId);
+  // ═══ SUPABASE — Supprimer l'intervention + données liées du serveur ═══
+  if (sbId && _sb) {
+    // Supprimer enfants d'abord (sinon contrainte FK bloque)
+    _sb.from('contenus').delete().eq('intervention_id', sbId).then(function(r){
+      if(r.error) console.warn('[FDE] Erreur delete contenus:', r.error.message);
+    });
+    _sb.from('logements').delete().eq('intervention_id', sbId).then(function(r){
+      if(r.error) console.warn('[FDE] Erreur delete logements:', r.error.message);
+    });
+    // Puis supprimer l'intervention
+    setTimeout(function(){ _sbDeleteIntervention(sbId); }, 1000);
+  }
   toast('Dossier supprimé et espace libéré ✓');
 }
 
