@@ -2971,12 +2971,9 @@ function _loadInvestiFromSupabase(curD){
         if(h.length>bestContent.length) bestContent=h;
       });
       if(bestContent.length>30){
-        // Ne pas écrire si l'éditeur a déjà le bon contenu (évite les doublons visuels)
-        if(edI.innerHTML.length < bestContent.length * 0.8){
-          console.log('[FDE] ✅ Investigation → éditeur: '+bestContent.length+' chars');
-          edI.innerHTML=bestContent;
-          _fixInvestiImages(edI);
-        }
+        console.log('[FDE] ✅ Investigation → éditeur: '+bestContent.length+' chars');
+        edI.innerHTML=bestContent;
+        _fixInvestiImages(edI);
         _currentLogId = Object.keys(contenus.investiContents)[0] || _currentLogId;
         _fixInvestiImages(edI);
         // Mettre à jour le label
@@ -3233,8 +3230,7 @@ function addPhotoToSupport(sid){
           var im=document.createElement('img'); im.src=compressed; th.appendChild(im);
           var nb=document.createElement('span'); nb.className='photo-num'; nb.textContent=num; th.appendChild(nb);
           var db=document.createElement('button'); db.className='photo-del'; db.textContent='x';
-          var galerieItem=makeGalerieItem(compressed,num);
-          db.onclick=function(){ th.remove(); galerieItem.remove(); renumberPhotos(); };
+          db.onclick=function(){ th.remove(); renumberPhotos(); };
           th.appendChild(db);
           wrap.appendChild(th);
           renumberPhotos();
@@ -3243,8 +3239,6 @@ function addPhotoToSupport(sid){
             if (url) {
               im.src = url;
               im.dataset.storageUrl = url;
-              var gimg = galerieItem.querySelector('img');
-              if (gimg) gimg.src = url;
             }
           });
           setTimeout(processNext, 80);
@@ -4342,15 +4336,10 @@ function _doRestoreSession(data){
     if(data.dossier){ window._dossier=data.dossier; }
     if(data.investiContents) _investiContents = data.investiContents;
     if(data.currentLogId) _currentLogId = data.currentLogId;
-    // Différer la restauration des éditeurs (conclusion ET investigation)
+    // Différer la restauration de la conclusion
+    // L'investigation est chargée PAR DOSSIER via _loadInvestiFromSupabase (pas globalement)
     setTimeout(function(){
       if(data.conclusion){ var ed=document.getElementById('editor-conclusion'); if(ed) ed.innerHTML=data.conclusion; }
-      // Investigation — restaurer DIRECTEMENT comme la conclusion
-      if(data.investigationDirect && data.investigationDirect.length>30){
-        var edi=document.getElementById('editor-investi'); if(edi){ edi.innerHTML=data.investigationDirect; _fixInvestiImages(edi); }
-      } else if(_currentLogId && _investiContents[_currentLogId]){
-        var edi2=document.getElementById('editor-investi'); if(edi2){ edi2.innerHTML=_investiContents[_currentLogId]; _fixInvestiImages(edi2); }
-      }
     }, 800);
     // Restaurer les logements
     if(data.logements && data.logements.length>0){
@@ -4747,18 +4736,9 @@ function _sbGeneratePDF(){
     .then(function(data){
       removeOverlay();
       if(data.success&&data.pdf_url){
-        toast('✅ PDF généré !');
-        // Afficher un modal avec le lien — évite de naviguer hors de l'app
-        var modal=document.createElement('div');
-        modal.style.cssText='position:fixed;inset:0;background:rgba(15,23,42,0.9);z-index:99999;display:flex;align-items:center;justify-content:center;';
-        modal.innerHTML='<div style="background:#1E293B;border-radius:16px;padding:32px;max-width:340px;text-align:center;">'+
-          '<div style="font-size:48px;margin-bottom:12px">✅</div>'+
-          '<div style="color:white;font-size:18px;font-weight:700;margin-bottom:8px">PDF prêt !</div>'+
-          '<div style="color:#94a3b8;font-size:14px;margin-bottom:20px">'+data.size_mb+' MB — '+data.page_count+' pages</div>'+
-          '<a href="'+data.pdf_url+'" target="_blank" style="display:block;background:#F97316;color:white;padding:14px 24px;border-radius:10px;font-size:16px;font-weight:700;text-decoration:none;margin-bottom:12px">📄 Ouvrir le PDF</a>'+
-          '<button onclick="this.parentElement.parentElement.remove()" style="background:transparent;border:1px solid #475569;color:#94a3b8;padding:10px 24px;border-radius:10px;font-size:14px;cursor:pointer;width:100%">Fermer</button>'+
-          '</div>';
-        document.body.appendChild(modal);
+        toast('✅ PDF généré ! ('+data.size_mb+' MB)');
+        // Ouvrir directement le PDF
+        window.open(data.pdf_url, '_blank');
       } else {
         toast('⚠️ '+(data.error||'Erreur inconnue'));
       }
@@ -6757,6 +6737,11 @@ function _restoreFromSupabase(d, onDone){
 function _loadRapportSlot(uid){
   var slot=_dossierSlots[uid];
   if(!slot) return false;
+  // ═══ TOUJOURS nettoyer la façade avant de restaurer (évite les résidus du dossier précédent) ═══
+  document.querySelectorAll('.facade-img').forEach(function(img){
+    img.src=''; img.style.display='none'; img.removeAttribute('data-storage-url'); img.removeAttribute('data-full-src');
+  });
+  document.querySelectorAll('.fz-icon,.fz-label').forEach(function(el){ el.style.display=''; });
   // 1. Restaurer le HTML brut des logements — SANS décoder les images immédiatement
   var logCont=document.getElementById('logements-container');
   if(logCont){
