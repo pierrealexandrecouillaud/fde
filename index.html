@@ -2034,10 +2034,8 @@ function _recoverSharedImages(){
     var re2=/(data-full-src|data-storage-url|src)\s*=\s*["'](https?:\/\/[^"']*supabase[^"']*(?:\.jpg|\.jpeg|\.png|\.webp|support_|facade_)[^"']*)["']/gi;
     var m2; while((m2=re2.exec(ch))!==null){ if(m2[2]&&!found[m2[2]]){ found[m2[2]]=true; _sharedImages.push({src:m2[2], storageUrl:m2[2], name:''}); } }
   }
-  document.querySelectorAll('.photo-thumb img').forEach(function(img){
-    var url=img.dataset.storageUrl||img.dataset.fullSrc||(img.src&&img.src.indexOf('http')===0?img.src:'');
-    if(url&&!found[url]){ found[url]=true; _sharedImages.push({src:url, storageUrl:url, name:''}); }
-  });
+  // NE PAS inclure les photos de supports (elles sont dans le tableau de dégâts uniquement)
+  // Scan uniquement les éditeurs investigation et conclusion
   if(_sharedImages.length) _sharedImgPanelsDirty=true;
 
   // 2. ═══ TOUJOURS lister Supabase Storage — source de vérité ═══
@@ -2052,7 +2050,9 @@ function _recoverSharedImages(){
       if(!r.data||!r.data.length){ console.log('[FDE] Galerie: dossier vide'); return; }
       var added=0;
       r.data.forEach(function(f){
-        if(!f.name||f.name.indexOf('rapport_')===0||f.name==='logo.jpg') return;
+        if(!f.name) return;
+        // Exclure supports, façades, rapports PDF et logo
+        if(f.name.indexOf('support_')===0 || f.name.indexOf('facade_')===0 || f.name.indexOf('rapport_')===0 || f.name==='logo.jpg') return;
         var url='https://wsgzlchfaoydpdozarfi.supabase.co/storage/v1/object/public/photos/'+folder+'/'+f.name;
         if(!found[url]){ found[url]=true; _sharedImages.push({src:url, storageUrl:url, name:f.name}); added++; }
       });
