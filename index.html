@@ -1607,6 +1607,7 @@ function _sbSaveContenus() {
   Object.keys(_investiContents).forEach(function(logId) {
     var html = _investiContents[logId] || '';
     if (!html || html.length < 10) return;
+    console.log('[FDE] Saving contenu: logId='+logId+' len='+html.length+' sbId='+d._sbId.substring(0,8));
     _sb.from('contenus').upsert({
       intervention_id: d._sbId,
       logement_id: logId,
@@ -1614,7 +1615,8 @@ function _sbSaveContenus() {
       skel_type: _activeSkelType || ''
     }, { onConflict: 'intervention_id,logement_id' })
     .then(function(r) {
-      if (r.error) console.warn('[FDE] Erreur save contenu investi:', r.error.message);
+      if (r.error) console.warn('[FDE] ❌ Erreur save contenu:', r.error.message);
+      else console.log('[FDE] ✅ Contenu sauvé: '+logId);
     });
   });
 
@@ -2943,6 +2945,7 @@ function _refreshLogementsFromSupabase(d){
 // ═══ Charger investigation depuis Supabase et afficher ═══
 function _loadInvestiFromSupabase(curD){
   var edI=document.getElementById('editor-investi');
+  console.log('[FDE] _loadInvestiFromSupabase: sbId='+curD._sbId.substring(0,8)+' edI='+!!edI);
   _sbLoadContenus(curD._sbId, function(contenus){
     // Conclusion
     if(contenus && contenus.conclusion){
@@ -2960,6 +2963,7 @@ function _loadInvestiFromSupabase(curD){
         if(h.length>bestContent.length) bestContent=h;
       });
       if(bestContent.length>30){
+        console.log('[FDE] ✅ Investigation → éditeur: '+bestContent.length+' chars');
         edI.innerHTML=bestContent;
         _fixInvestiImages(edI);
         // Mettre à jour le label
@@ -3643,6 +3647,12 @@ function insertImgAtCursor(src){
     img.src=src;
     img.dataset.fullSrc=src;
     _doInsertImg(ed, img);
+    // ═══ SAUVEGARDER après insertion ═══
+    setTimeout(function(){
+      try{saveCurrentInvesti();}catch(e){}
+      try{_sbSaveContenus();}catch(e){}
+      console.log('[FDE] Save après insertion photo URL');
+    }, 1000);
     return;
   }
   // Si c'est du base64 → compresser à 200px pour l'éditeur (économise ~90% mémoire)
