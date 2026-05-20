@@ -3787,6 +3787,7 @@ function doSave(){
       investiContents:_saveInvesti,
       currentLogId:_currentLogId,
       conclusion:edConcluNow?_sanitizeInvestiHTML(edConcluNow.innerHTML):'',
+      investigationDirect:edInvNow?_sanitizeInvestiHTML(edInvNow.innerHTML):'',
       logements:logementsData,
       phc:_phc,
       lc:_lc, pc:_pc,
@@ -3800,6 +3801,7 @@ function doSave(){
         activeSkelType:saveData.activeSkelType,
         currentLogId:saveData.currentLogId,
         conclusion:(saveData.conclusion||'').replace(/<img[^>]*>/g,''),
+        investigationDirect:(saveData.investigationDirect||'').replace(/<img[^>]*>/g,''),
         logements:saveData.logements,
         phc:saveData.phc, lc:saveData.lc, pc:saveData.pc,
         investiContents:{}
@@ -4307,8 +4309,11 @@ function _doRestoreSession(data){
     // Différer la restauration des éditeurs (conclusion ET investigation)
     setTimeout(function(){
       if(data.conclusion){ var ed=document.getElementById('editor-conclusion'); if(ed) ed.innerHTML=data.conclusion; }
-      if(_currentLogId && _investiContents[_currentLogId]){
-        var edi=document.getElementById('editor-investi'); if(edi){ edi.innerHTML=_investiContents[_currentLogId]; _fixInvestiImages(edi); }
+      // Investigation — restaurer DIRECTEMENT comme la conclusion
+      if(data.investigationDirect && data.investigationDirect.length>30){
+        var edi=document.getElementById('editor-investi'); if(edi){ edi.innerHTML=data.investigationDirect; _fixInvestiImages(edi); }
+      } else if(_currentLogId && _investiContents[_currentLogId]){
+        var edi2=document.getElementById('editor-investi'); if(edi2){ edi2.innerHTML=_investiContents[_currentLogId]; _fixInvestiImages(edi2); }
       }
     }, 800);
     // Restaurer les logements
