@@ -6788,8 +6788,10 @@ function _loadRapportSlot(uid){
   _investiContents=slot.investiContents?JSON.parse(JSON.stringify(slot.investiContents)):{};
   _currentLogId=slot.currentLogId||null;
   var edI=document.getElementById('editor-investi');
-  // NE PAS restaurer investiHTML ici — c'est loadInvestiSkeleton qui gère l'éditeur investigation
-  // L'ancien code écrasait le contenu chargé depuis Supabase 600ms après
+  // Restaurer l'investigation depuis le SLOT DU DOSSIER (pas la session globale)
+  if(edI && slot.investiHTML && slot.investiHTML.length>30){
+    setTimeout(function(){ edI.innerHTML=slot.investiHTML; _fixInvestiImages(edI); }, 600);
+  }
   // 6. Conclusion — différé
   var edC=document.getElementById('editor-conclusion');
   if(edC) setTimeout(function(){ edC.innerHTML=slot.conclusion||''; }, 800);
