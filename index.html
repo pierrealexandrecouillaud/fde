@@ -3794,7 +3794,7 @@ function doSave(){
       investiContents:_saveInvesti,
       currentLogId:_currentLogId,
       conclusion:edConcluNow?_sanitizeInvestiHTML(edConcluNow.innerHTML):'',
-      investigationDirect:edInvNow?_sanitizeInvestiHTML(edInvNow.innerHTML):'',
+      investigationDirect:edInvNow?(edInvNow.innerHTML.indexOf('lectionnez un logement')>=0?'':_sanitizeInvestiHTML(edInvNow.innerHTML)):'',
       investigationDossierUid:window._dossier?window._dossier._uid:'',
       logements:logementsData,
       phc:_phc,
@@ -4338,15 +4338,11 @@ function _doRestoreSession(data){
     if(data.dossier){ window._dossier=data.dossier; }
     if(data.investiContents) _investiContents = data.investiContents;
     if(data.currentLogId) _currentLogId = data.currentLogId;
-    // Différer la restauration de la conclusion
+    // Différer la restauration des éditeurs — conclusion ET investigation
     setTimeout(function(){
       if(data.conclusion){ var ed=document.getElementById('editor-conclusion'); if(ed) ed.innerHTML=data.conclusion; }
+      if(data.investigationDirect){ var edi=document.getElementById('editor-investi'); if(edi) edi.innerHTML=data.investigationDirect; }
     }, 800);
-    // Sauver les données investigation pour restauration au clic "Remplir"
-    window._pendingInvestigation = {
-      html: data.investigationDirect || '',
-      dossierUid: data.investigationDossierUid || ''
-    };
     // Restaurer les logements
     if(data.logements && data.logements.length>0){
       var cont=document.getElementById('logements-container');
@@ -6668,7 +6664,7 @@ function _saveCurrentRapportSlot(){
     logementsHTML:_safeLogHTML,
     inputVals:inputVals,
     conclusion:edConclu?_sanitizeInvestiHTML(edConclu.innerHTML):'',
-    investiHTML:edInvesti?_sanitizeInvestiHTML(edInvesti.innerHTML):'',
+    investiHTML:edInvesti?(edInvesti.innerHTML.indexOf('lectionnez un logement')>=0?'':_sanitizeInvestiHTML(edInvesti.innerHTML)):'',
     investiContents:JSON.parse(JSON.stringify(_safeInvesti)),
     currentLogId:_currentLogId,
     activeSkelType:_activeSkelType||'',
@@ -6794,20 +6790,13 @@ function _loadRapportSlot(uid){
   _investiContents=slot.investiContents?JSON.parse(JSON.stringify(slot.investiContents)):{};
   _currentLogId=slot.currentLogId||null;
   var edI=document.getElementById('editor-investi');
-  // Restaurer l'investigation depuis le SLOT DU DOSSIER
-  if(edI){
-    var investHTML = slot.investiHTML || '';
-    // Si le slot n'a rien, utiliser les données globales SI le dossier correspond
-    if(investHTML.length<30 && window._pendingInvestigation){
-      var pi=window._pendingInvestigation;
-      if(pi.html && pi.html.length>30 && pi.dossierUid===uid){
-        investHTML=pi.html;
-      }
+  // Investigation — restauré EXACTEMENT comme la conclusion
+  // MAIS ignorer le placeholder "Sélectionnez un logement" qui écraserait le vrai contenu
+  if(edI) setTimeout(function(){
+    if(slot.investiHTML && slot.investiHTML.length>200 && slot.investiHTML.indexOf('lectionnez un logement')<0){
+      edI.innerHTML=slot.investiHTML;
     }
-    if(investHTML.length>30){
-      setTimeout(function(){ edI.innerHTML=investHTML; _fixInvestiImages(edI); }, 600);
-    }
-  }
+  }, 800);
   // 6. Conclusion — différé
   var edC=document.getElementById('editor-conclusion');
   if(edC) setTimeout(function(){ edC.innerHTML=slot.conclusion||''; }, 800);
