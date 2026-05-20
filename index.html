@@ -2120,45 +2120,10 @@ function goTo(pageId){
     }, 50);
   }
   if(pageId==='investigation'){
-    // ═══ SIMPLIFICATION RADICALE — Toujours charger depuis Supabase ═══
+    // ═══ ULTRA-SIMPLE — charger depuis Supabase comme la conclusion ═══
     var curD=window._dossier;
     if(curD && curD._sbId && _sb){
-      // 1. Charger logements si absents
-      updateLogsVisites();
-      if(_logsVisites.length===0){
-        _sbLoadLogements(curD._sbId, function(logements){
-          if(logements && logements.length){
-            logements.forEach(function(log){
-              var matchIdx=0;
-              for(var ci=1;ci<=_lc;ci++){ var o=document.getElementById('log-'+ci+'-occ'); if(o&&(o.value||'').trim()===(log.occupant||'').trim()){matchIdx=ci;break;} }
-              if(matchIdx){
-                // Logement existe → mettre à jour les coches
-                var v=document.getElementById('log-'+matchIdx+'-vis');if(v)v.checked=!!log.visite;
-                var s=document.getElementById('log-'+matchIdx+'-sin');if(s)s.checked=!!log.sinistre;
-              } else {
-                addLogement();
-                var lid='log-'+_lc;
-                var o2=document.getElementById(lid+'-occ');if(o2)o2.value=log.occupant||'';
-                var a2=document.getElementById(lid+'-apt');if(a2)a2.value=log.appartement||'';
-                var e2=document.getElementById(lid+'-eta');if(e2)e2.value=log.etage||'';
-                var v2=document.getElementById(lid+'-vis');if(v2)v2.checked=!!log.visite;
-                var s2=document.getElementById(lid+'-sin');if(s2)s2.checked=!!log.sinistre;
-              }
-            });
-          }
-          updateLogsVisites();
-          // 2. Charger contenus puis afficher
-          _loadInvestiFromSupabase(curD);
-        });
-      } else {
-        // Logements déjà là → charger contenus
-        _loadInvestiFromSupabase(curD);
-      }
-    } else {
-      // Pas de Supabase → fallback local
-      updateLogsVisites();
-      var _fl0=_logsVisites&&_logsVisites[0];
-      if(_fl0) loadInvestiSkeleton(_fl0);
+      _loadInvestiFromSupabase(curD);
     }
   }
   if(pageId==='tableau'){
@@ -2977,44 +2942,31 @@ function _refreshLogementsFromSupabase(d){
 
 // ═══ Charger investigation depuis Supabase et afficher ═══
 function _loadInvestiFromSupabase(curD){
+  var edI=document.getElementById('editor-investi');
   _sbLoadContenus(curD._sbId, function(contenus){
-    // Conclusion → directement dans l'éditeur
+    // Conclusion
     if(contenus && contenus.conclusion){
       var edC=document.getElementById('editor-conclusion');
       if(edC && (!edC.innerHTML || edC.innerHTML.length<30)) edC.innerHTML=contenus.conclusion;
     }
     if(contenus && contenus.skelType) _activeSkelType=contenus.skelType;
     
-    // Investigation → trouver le contenu le plus long et l'afficher directement
-    var edI=document.getElementById('editor-investi');
+    // Investigation → écrire DIRECTEMENT dans l'éditeur
     if(contenus && contenus.investiContents && edI){
-      var bestKey='', bestLen=0;
+      var bestContent='';
       Object.keys(contenus.investiContents).forEach(function(logId){
         var h=contenus.investiContents[logId]||'';
-        _investiContents[logId]=h; // mettre en cache
-        if(h.length>bestLen){ bestLen=h.length; bestKey=logId; }
+        _investiContents[logId]=h;
+        if(h.length>bestContent.length) bestContent=h;
       });
-      
-      // Écrire DIRECTEMENT dans l'éditeur (comme la conclusion)
-      if(bestKey && bestLen>30){
-        edI.innerHTML=contenus.investiContents[bestKey].replace(/<\/p>\s*<p([ >])/g,'</p><br><p$1');
+      if(bestContent.length>30){
+        edI.innerHTML=bestContent;
         _fixInvestiImages(edI);
-        _currentLogId=bestKey;
-        // Mettre à jour le label du logement
-        updateLogsVisites();
-        var fl=_logsVisites&&_logsVisites[0];
-        if(fl){
-          var nm=document.getElementById('investi-log-name');
-          if(nm){ nm.textContent=fl.nom||'Logement'; nm.style.color='var(--orange)'; }
-        }
-        return; // ← TERMINÉ, pas besoin de loadInvestiSkeleton
+        // Mettre à jour le label
+        var nm=document.getElementById('investi-log-name');
+        if(nm){ nm.textContent='Investigation chargée'; nm.style.color='var(--orange)'; }
       }
     }
-    
-    // Fallback : pas de contenu Supabase → utiliser loadInvestiSkeleton
-    updateLogsVisites();
-    var fl2=_logsVisites&&_logsVisites[0];
-    if(fl2) loadInvestiSkeleton(fl2);
   });
 }
 
@@ -4342,12 +4294,10 @@ function _doRestoreSession(data){
     if(data.dossier){ window._dossier=data.dossier; }
     if(data.investiContents) _investiContents = data.investiContents;
     if(data.currentLogId) _currentLogId = data.currentLogId;
-    // Différer la restauration des éditeurs (contiennent potentiellement des images inline)
+    // Différer la restauration de la conclusion uniquement
+    // L'investigation est gérée par _loadInvestiFromSupabase (pas de restauration locale)
     setTimeout(function(){
       if(data.conclusion){ var ed=document.getElementById('editor-conclusion'); if(ed) ed.innerHTML=data.conclusion; }
-      if(_currentLogId && _investiContents[_currentLogId]){
-        var edi=document.getElementById('editor-investi'); if(edi){ edi.innerHTML=_investiContents[_currentLogId]; _fixInvestiImages(edi); }
-      }
     }, 800);
     // Restaurer les logements
     if(data.logements && data.logements.length>0){
