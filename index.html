@@ -4116,13 +4116,14 @@ function _restoreDashboardFromDossiers(){
     btnR.innerHTML='<i class="ti ti-pencil"></i> Remplir'; btnR.style.touchAction='manipulation';
     (function(dd){ btnR.onclick=function(){
       if(window._dossier && window._dossier._uid === dd._uid){ goTo('dommage'); return; }
+      // ═══ SAUVER LE DOSSIER ACTUEL avant de changer ═══
+      try{saveCurrentInvesti();_saveCurrentRapportSlot();_sbSaveContenus();}catch(e){}
       window._dossier=dd;
       if(!dd._uid || !_loadRapportSlot(dd._uid)){
         if(dd._sbId && _sb){ _restoreFromSupabase(dd, function(){ _syncAllCadres(); }); }
         else { _viderRapportPourNouvelleInterv(); addLogement(); }
       }
       _syncAllCadres(); goTo('dommage');
-      // ═══ Rafraîchir coches depuis Supabase (le slot ne les préserve pas) ═══
       _refreshLogementsFromSupabase(dd);
     }; })(d);
     // Bouton Modifier
@@ -4338,7 +4339,8 @@ function _doRestoreSession(data){
     if(data.dossier){ window._dossier=data.dossier; }
     if(data.investiContents) _investiContents = data.investiContents;
     if(data.currentLogId) _currentLogId = data.currentLogId;
-    // Différer la restauration des éditeurs — conclusion ET investigation
+    // Restaurer conclusion ET investigation depuis la session globale
+    // (Le slot par dossier corrige le mélange quand on ouvre un dossier spécifique)
     setTimeout(function(){
       if(data.conclusion){ var ed=document.getElementById('editor-conclusion'); if(ed) ed.innerHTML=data.conclusion; }
       if(data.investigationDirect){ var edi=document.getElementById('editor-investi'); if(edi) edi.innerHTML=data.investigationDirect; }
@@ -6290,6 +6292,7 @@ function _doDashSearch(query){
     btnR.innerHTML='<i class="ti ti-pencil"></i> Remplir'; btnR.style.touchAction='manipulation';
     (function(dd){ btnR.onclick=function(){
       if(window._dossier && window._dossier._uid === dd._uid){ goTo('dommage'); return; }
+      try{saveCurrentInvesti();_saveCurrentRapportSlot();_sbSaveContenus();}catch(e){}
       window._dossier=dd;
       if(!dd._uid || !_loadRapportSlot(dd._uid)){
         if(dd._sbId && _sb){ _restoreFromSupabase(dd, function(){ _syncAllCadres(); }); }
@@ -6583,6 +6586,8 @@ function techCreateInterv(isUpdate){
         return;
       }
       // Intervention différente → charger ses données
+      // ═══ SAUVER LE DOSSIER ACTUEL avant de changer ═══
+      try{saveCurrentInvesti();_saveCurrentRapportSlot();_sbSaveContenus();}catch(e){}
       window._dossier=dd;
       if(!dd._uid || !_loadRapportSlot(dd._uid)){
         if(dd._sbId && _sb){ _restoreFromSupabase(dd, function(){ _syncAllCadres(); }); }
