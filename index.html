@@ -3943,8 +3943,8 @@ function deleteDossier(uid){
     }).catch(function(err){ console.error('[FDE] Delete chain error:', err); });
   }
   toast('Dossier supprimé et espace libéré ✓');
-  // Forcer la sauvegarde locale pour que la suppression persiste
-  try{ doSave(); }catch(e){}
+  // Si le dossier supprimé était le dossier actif, le détacher
+  if(window._dossier && window._dossier._uid===uid) window._dossier=null;
 }
 
 function loadFromIDB(cb, key){
@@ -4066,12 +4066,33 @@ function restoreSessionFromData(data){
 }
 
 function startAutoSave(){
-  // Sauvegarde toutes les 20 secondes
+  // Sauvegarde toutes les 45 secondes
   setInterval(function(){ doSave(); }, 45000);
   // Mettre à jour l'indicateur toutes les 10s
   setInterval(function(){
     if(_lastSaveTime) updateSaveIndicator();
   }, 10000);
+  // ═══ SYNC DASHBOARD — vérifier Supabase toutes les 60s (multi-appareil) ═══
+  setInterval(function(){
+    var activePage=document.querySelector('.page.active');
+    if(!activePage || activePage.id!=='page-dashboard') return;
+    if(!_sb || !_sbUser) return;
+    _sbLoadInterventions(function(sbDossiers){
+      if(!sbDossiers) return;
+      var sbIds={};
+      sbDossiers.forEach(function(sbd){ if(sbd._sbId) sbIds[sbd._sbId]=true; });
+      var changed=false;
+      sbDossiers.forEach(function(sbd){
+        var exists=false;
+        _allDossiers.forEach(function(d){ if(d._sbId===sbd._sbId) exists=true; });
+        if(!exists){ _allDossiers.push(sbd); changed=true; }
+      });
+      var before=_allDossiers.length;
+      _allDossiers=_allDossiers.filter(function(d){ return !(d._sbId && !sbIds[d._sbId]); });
+      if(_allDossiers.length!==before) changed=true;
+      if(changed) _restoreDashboardFromDossiers();
+    });
+  }, 60000);
 }
 
 function checkPreviousSession(){
@@ -4092,10 +4113,19 @@ function checkPreviousSession(){
 
 
 function _restoreDashboardFromDossiers(){
-  if(!_allDossiers||!_allDossiers.length) return;
   var tbody=document.querySelector('#page-dashboard .table-wrap tbody');
   if(!tbody) return;
-  // Ne pas recréer les lignes qui existent déjà
+  
+  // 1. SUPPRIMER les lignes du DOM qui ne sont plus dans _allDossiers
+  var activeUids={};
+  _allDossiers.forEach(function(d){ if(d._uid) activeUids[d._uid]=true; });
+  tbody.querySelectorAll('tr').forEach(function(r){
+    var uid=r.getAttribute('data-uid');
+    if(uid && !activeUids[uid]) r.remove();
+  });
+  
+  if(!_allDossiers||!_allDossiers.length) return;
+  // 2. AJOUTER les lignes manquantes
   var existingUids={};
   tbody.querySelectorAll('tr').forEach(function(r){ 
     var uid=r.getAttribute('data-uid'); if(uid) existingUids[uid]=true; 
