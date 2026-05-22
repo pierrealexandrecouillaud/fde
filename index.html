@@ -2098,17 +2098,15 @@ function goTo(pageId){
     }, 50);
   }
   if(pageId==='investigation'){
-    // ═══ ULTRA-SIMPLE — charger depuis Supabase comme la conclusion ═══
     var curD=window._dossier;
     if(curD && curD._sbId && _sb){
       _loadInvestiFromSupabase(curD);
     }
-    // Charger la galerie d'images depuis Supabase Storage
-    _recoverSharedImages();
+    // Galerie : reconstruire UNIQUEMENT si vide (évite doublons)
+    if(!_sharedImages.length) _recoverSharedImages();
   }
   if(pageId==='conclusion'){
-    // Charger la galerie d'images depuis Supabase Storage
-    _recoverSharedImages();
+    if(!_sharedImages.length) _recoverSharedImages();
   }
   if(pageId==='tableau'){
     // Recharger les photos du tableau progressivement
@@ -2950,9 +2948,13 @@ function _loadInvestiFromSupabase(curD){
         if(h.length>bestContent.length) bestContent=h;
       });
       if(bestContent.length>30){
-        console.log('[FDE] ✅ Investigation → éditeur: '+bestContent.length+' chars');
-        edI.innerHTML=bestContent;
-        _fixInvestiImages(edI);
+        // Écrire UNIQUEMENT si l'éditeur est vide (comme la conclusion)
+        // Le slot a déjà restauré le bon contenu — ne pas l'écraser
+        if(!edI.innerHTML || edI.innerHTML.length<50 || edI.innerHTML.indexOf('lectionnez un logement')>=0){
+          console.log('[FDE] ✅ Investigation → éditeur: '+bestContent.length+' chars');
+          edI.innerHTML=bestContent;
+          _fixInvestiImages(edI);
+        }
         _currentLogId = Object.keys(contenus.investiContents)[0] || _currentLogId;
         _fixInvestiImages(edI);
         // Mettre à jour le label
