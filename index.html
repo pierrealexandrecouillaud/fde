@@ -2099,6 +2099,25 @@ function goTo(pageId){
     _updateDashboardStatus(window._dossier._uid, window._dossier._status);
   }
   updateGlobalNav(pageId);
+  // ═══ FAÇADE — charger depuis Supabase si absente localement ═══
+  if(pageId==='dommage'||pageId==='tableau'||pageId==='investigation'||pageId==='conclusion'){
+    var _facadeImg=document.querySelector('.facade-img');
+    if(_facadeImg && (!_facadeImg.src || _facadeImg.src.indexOf('http')<0)){
+      var _fd=window._dossier;
+      if(_fd && _fd._sbId && _sb){
+        _sbLoadContenus(_fd._sbId, function(c){
+          if(c && c.facadeUrl && c.facadeUrl.indexOf('http')===0){
+            ['d','t','i','c','fin'].forEach(function(id){
+              var img=document.getElementById('facade-img-'+id); if(!img) return;
+              img.src=c.facadeUrl; img.style.display='block'; img.dataset.storageUrl=c.facadeUrl;
+              var zone=img.parentElement;
+              if(zone){ var ic=zone.querySelector('.fz-icon'); var lb=zone.querySelector('.fz-label'); if(ic)ic.style.display='none'; if(lb)lb.style.display='none'; }
+            });
+          }
+        });
+      }
+    }
+  }
   // Investigation : auto-charger premier logement visité
   if(pageId==='dashboard'){
     setTimeout(function(){
