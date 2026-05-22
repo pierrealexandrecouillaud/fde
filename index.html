@@ -2019,12 +2019,13 @@ function _ensureSharedImgPanels(){
 // Reconstruire _sharedImages depuis les images dans _investiContents et conclusion
 function _recoverSharedImages(){
   var found={};
-  // Marquer les URLs déjà dans _sharedImages pour éviter les doublons
   _sharedImages.forEach(function(img){ if(img.src) found[img.src]=true; if(img.storageUrl) found[img.storageUrl]=true; });
   
-  // 1. Scan rapide local : _investiContents et conclusion (PAS supports/facades)
-  Object.keys(_investiContents).forEach(function(k){
-    var html=_investiContents[k]||'';
+  // Scanner UNIQUEMENT les éditeurs DOM (pas _investiContents qui peut appartenir à un autre dossier)
+  ['editor-investi','editor-conclusion'].forEach(function(edId){
+    var edEl=document.getElementById(edId);
+    if(!edEl) return;
+    var html=edEl.innerHTML||'';
     var re=/(data-full-src|data-storage-url|src)\s*=\s*["'](https?:\/\/[^"']*supabase[^"']*(?:\.jpg|\.jpeg|\.png)[^"']*)["']/gi;
     var m; while((m=re.exec(html))!==null){
       if(m[2]&&!found[m[2]]&&m[2].indexOf('support_')<0&&m[2].indexOf('facade_')<0){
@@ -2032,16 +2033,6 @@ function _recoverSharedImages(){
       }
     }
   });
-  var edC=document.getElementById('editor-conclusion');
-  if(edC){
-    var ch=edC.innerHTML||'';
-    var re2=/(data-full-src|data-storage-url|src)\s*=\s*["'](https?:\/\/[^"']*supabase[^"']*(?:\.jpg|\.jpeg|\.png)[^"']*)["']/gi;
-    var m2; while((m2=re2.exec(ch))!==null){
-      if(m2[2]&&!found[m2[2]]&&m2[2].indexOf('support_')<0&&m2[2].indexOf('facade_')<0){
-        found[m2[2]]=true; _sharedImages.push({src:m2[2], storageUrl:m2[2], name:''});
-      }
-    }
-  }
   if(_sharedImages.length) _sharedImgPanelsDirty=true;
   // NE PAS lister Storage — le dossier Storage est par client, pas par intervention
   // La galerie ne contient que les photos des éditeurs actuels + ajout manuel
@@ -2934,10 +2925,15 @@ function _refreshLogementsFromSupabase(d){
 }
 
 // ═══ Charger investigation depuis Supabase et afficher ═══
+var _investiLoadVersion=0;
 function _loadInvestiFromSupabase(curD){
   var edI=document.getElementById('editor-investi');
-  console.log('[FDE] _loadInvestiFromSupabase: sbId='+curD._sbId.substring(0,8)+' edI='+!!edI);
+  var myVersion=++_investiLoadVersion;
+  console.log('[FDE] _loadInvestiFromSupabase: sbId='+curD._sbId.substring(0,8)+' v='+myVersion);
   _sbLoadContenus(curD._sbId, function(contenus){
+    // ═══ IGNORER si un autre dossier a été ouvert entre-temps ═══
+    if(myVersion!==_investiLoadVersion){ console.log('[FDE] Supabase réponse obsolète v='+myVersion+' (actuel='+_investiLoadVersion+'), ignorée'); return; }
+    if(!window._dossier||window._dossier._sbId!==curD._sbId){ console.log('[FDE] Dossier changé, réponse ignorée'); return; }
     // Conclusion
     if(contenus && contenus.conclusion){
       var edC=document.getElementById('editor-conclusion');
