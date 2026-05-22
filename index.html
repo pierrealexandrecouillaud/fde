@@ -2552,8 +2552,10 @@ function handleFacadeUpload(input){
       if(pf) pf.innerHTML='<img src="'+compressed+'" style="width:100%;height:100%;object-fit:cover">';
       toast('Photo de façade mise à jour ✓');
       // ═══ SUPABASE — Upload façade en arrière-plan ═══
+      toast('📤 Upload façade...');
       _sbUploadPhoto(compressed, 'facade', function(url) {
         if (url) {
+          toast('📤 Façade uploadée, sauvegarde...');
           ['d','t','i','c','fin'].forEach(function(id){
             var img=document.getElementById('facade-img-'+id);
             if(img) { img.src=url; img.dataset.storageUrl=url; }
@@ -2566,8 +2568,12 @@ function handleFacadeUpload(input){
               logement_id: '_facade',
               investigation_html: url
             }, { onConflict: 'intervention_id,logement_id' })
-            .then(function(r){ if(r.error) console.warn('[FDE] Erreur save facade:', r.error.message); else console.log('[FDE] ✅ Façade sauvée'); });
+            .then(function(r){ if(r.error) toast('❌ Façade: '+r.error.message); else toast('✅ Façade sauvée sur le serveur'); });
+          } else {
+            toast('⚠️ Façade: pas de dossier Supabase (_sbId='+(d?d._sbId:'null')+')');
           }
+        } else {
+          toast('❌ Upload façade échoué');
         }
       });
       autoSave();
