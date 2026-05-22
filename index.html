@@ -1652,11 +1652,13 @@ function _sbLoadContenus(sbInterventionId, callback) {
         callback({});
         return;
       }
-      var contenus = { investiContents: {}, conclusion: '', skelType: '' };
+      var contenus = { investiContents: {}, conclusion: '', skelType: '', facadeUrl: '' };
       (result.data || []).forEach(function(row) {
         if (row.logement_id === '_conclusion') {
           contenus.conclusion = row.conclusion_html || '';
           contenus.skelType = row.skel_type || '';
+        } else if (row.logement_id === '_facade') {
+          contenus.facadeUrl = row.investigation_html || '';
         } else {
           contenus.investiContents[row.logement_id] = row.investigation_html || '';
           if (row.skel_type) contenus.skelType = row.skel_type;
@@ -2556,6 +2558,16 @@ function handleFacadeUpload(input){
             var img=document.getElementById('facade-img-'+id);
             if(img) { img.src=url; img.dataset.storageUrl=url; }
           });
+          // Sauver l'URL dans la table contenus (comme conclusion)
+          var d=window._dossier;
+          if(d && d._sbId && _sb){
+            _sb.from('contenus').upsert({
+              intervention_id: d._sbId,
+              logement_id: '_facade',
+              investigation_html: url
+            }, { onConflict: 'intervention_id,logement_id' })
+            .then(function(r){ if(r.error) console.warn('[FDE] Erreur save facade:', r.error.message); else console.log('[FDE] ✅ Façade sauvée'); });
+          }
         }
       });
       autoSave();
@@ -2989,10 +3001,21 @@ function _loadInvestiFromSupabase(curD){
         if(nm){ nm.textContent='Investigation chargée'; nm.style.color='var(--orange)'; }
       }
     }
+    // ═══ FAÇADE — restaurer depuis Supabase ═══
+    if(contenus && contenus.facadeUrl && contenus.facadeUrl.indexOf('http')===0){
+      ['d','t','i','c','fin'].forEach(function(id){
+        var img=document.getElementById('facade-img-'+id); if(!img) return;
+        if(!img.src || img.src.indexOf('http')<0){
+          img.src=contenus.facadeUrl; img.style.display='block';
+          img.dataset.storageUrl=contenus.facadeUrl;
+          var zone=img.parentElement;
+          if(zone){ var ic=zone.querySelector('.fz-icon'); var lb=zone.querySelector('.fz-label'); if(ic)ic.style.display='none'; if(lb)lb.style.display='none'; }
+        }
+      });
+      console.log('[FDE] Façade restaurée depuis Supabase');
+    }
   });
-}
-
-function _loadEmptySkeleton(ed, label){
+}(ed, label){
   var titreLog='<p><strong>Intervention de recherche de fuite '+label+'</strong></p><br>';
   var corps;
   if(_activeSkelType && SKEL_INVESTI[_activeSkelType]){
