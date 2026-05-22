@@ -1615,7 +1615,14 @@ function _sbSaveContenus() {
       skel_type: _activeSkelType || ''
     }, { onConflict: 'intervention_id,logement_id' })
     .then(function(r) {
-      if (r.error) console.warn('[FDE] ❌ Erreur save contenu:', r.error.message);
+      if (r.error) {
+        console.warn('[FDE] ❌ Erreur save contenu:', r.error.message);
+        // Si l'intervention a été supprimée → arrêter de sauvegarder
+        if(r.error.message.indexOf('foreign key')>=0 && d._sbId){
+          console.log('[FDE] Intervention supprimée, arrêt des sauvegardes');
+          d._sbId=null; if(window._dossier) window._dossier._sbId=null;
+        }
+      }
       else console.log('[FDE] ✅ Contenu sauvé: '+logId);
     });
   });
@@ -4269,7 +4276,8 @@ function restoreSession(){
 
       // ═══ SUPABASE — Charger les interventions serveur et merger ═══
       _sbLoadInterventions(function(sbDossiers) {
-        if (!sbDossiers || !sbDossiers.length) return;
+        if (!sbDossiers) sbDossiers = [];
+        // Même si Supabase a 0 interventions, il faut nettoyer les dossiers locaux
         // Index des dossiers locaux par _sbId pour merge rapide
         var localBySbId = {};
         _allDossiers.forEach(function(d) { if (d._sbId) localBySbId[d._sbId] = d; });
