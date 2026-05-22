@@ -4730,12 +4730,17 @@ function _sbGeneratePDF(){
     .then(function(data){
       removeOverlay();
       if(data.success&&data.pdf_url){
-        // Créer un lien temporaire pour télécharger (compatible iPad)
-        var a=document.createElement('a');
-        a.href=data.pdf_url; a.target='_blank'; a.rel='noopener';
-        a.style.display='none'; document.body.appendChild(a);
-        a.click(); document.body.removeChild(a);
         toast('✅ PDF généré ! ('+data.size_mb+' MB)');
+        var modal=document.createElement('div');
+        modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:center;justify-content:center;';
+        modal.innerHTML='<div style="background:white;border-radius:16px;padding:32px;text-align:center;max-width:300px;">'+
+          '<div style="font-size:40px;margin-bottom:12px">✅</div>'+
+          '<div style="font-size:16px;font-weight:700;margin-bottom:4px">PDF prêt !</div>'+
+          '<div style="color:#64748b;font-size:13px;margin-bottom:20px">'+data.size_mb+' MB</div>'+
+          '<a href="'+data.pdf_url+'" target="_blank" style="display:block;background:#F97316;color:white;padding:14px;border-radius:10px;font-weight:700;text-decoration:none;font-size:15px">Ouvrir le PDF</a>'+
+          '</div>';
+        modal.onclick=function(e){ if(e.target===modal) modal.remove(); };
+        document.body.appendChild(modal);
       } else {
         toast('⚠️ '+(data.error||'Erreur inconnue'));
       }
