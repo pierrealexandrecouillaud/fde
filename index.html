@@ -4730,9 +4730,12 @@ function _sbGeneratePDF(){
     .then(function(data){
       removeOverlay();
       if(data.success&&data.pdf_url){
+        // Créer un lien temporaire pour télécharger (compatible iPad)
+        var a=document.createElement('a');
+        a.href=data.pdf_url; a.target='_blank'; a.rel='noopener';
+        a.style.display='none'; document.body.appendChild(a);
+        a.click(); document.body.removeChild(a);
         toast('✅ PDF généré ! ('+data.size_mb+' MB)');
-        // Ouvrir directement le PDF
-        window.open(data.pdf_url, '_blank');
       } else {
         toast('⚠️ '+(data.error||'Erreur inconnue'));
       }
