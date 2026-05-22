@@ -4255,25 +4255,30 @@ function restoreSession(){
           console.log('[FDE] +' + added + ' intervention(s) ajoutée(s) depuis Supabase');
         }
         // ═══ SYNC SUPPRESSION — retirer les dossiers locaux supprimés sur le serveur ═══
-        var sbIds = {};
-        sbDossiers.forEach(function(sbd){ sbIds[sbd._sbId]=true; });
-        var removed=0;
-        _allDossiers = _allDossiers.filter(function(d){
-          if(d._sbId && !sbIds[d._sbId]){
-            console.log('[FDE] Dossier supprimé du serveur, retiré localement: '+d._sbId.substring(0,8));
-            // Nettoyer le slot IDB de ce dossier
-            if(d._uid){
-              if(_dossierSlots[d._uid]) delete _dossierSlots[d._uid];
-              try{ deleteFromIDB('fde_slot_'+d._uid); }catch(e){}
+        try{
+          var sbIds = {};
+          sbDossiers.forEach(function(sbd){ if(sbd._sbId) sbIds[sbd._sbId]=true; });
+          console.log('[FDE] Sync: serveur='+Object.keys(sbIds).length+' local='+_allDossiers.length);
+          _allDossiers.forEach(function(d){ console.log('[FDE]   local: '+(d.client||'?')+' sbId='+(d._sbId||'NULL')+' uid='+d._uid); });
+          var removed=0;
+          _allDossiers = _allDossiers.filter(function(d){
+            if(d._sbId && !sbIds[d._sbId]){
+              console.log('[FDE] ← Retiré: '+(d.client||'?')+' sbId='+d._sbId.substring(0,8));
+              if(d._uid){
+                if(_dossierSlots[d._uid]) delete _dossierSlots[d._uid];
+                try{ deleteFromIDB('fde_slot_'+d._uid); }catch(e){}
+              }
+              removed++; return false;
             }
-            removed++; return false;
+            return true;
+          });
+          if(removed>0){
+            _restoreDashboardFromDossiers();
+            console.log('[FDE] '+removed+' dossier(s) retiré(s)');
+          } else {
+            console.log('[FDE] Aucun dossier à retirer');
           }
-          return true;
-        });
-        if(removed>0){
-          _restoreDashboardFromDossiers();
-          console.log('[FDE] '+removed+' dossier(s) retiré(s) (supprimés sur le serveur)');
-        }
+        }catch(syncErr){ console.error('[FDE] Sync erreur:', syncErr); }
         // Sauvegarder le merge localement
         try { localStorage.setItem('fde_all_dossiers_ls', JSON.stringify(_allDossiers)); } catch(e){}
 
