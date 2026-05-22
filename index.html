@@ -2444,7 +2444,27 @@ document.addEventListener('DOMContentLoaded',function(){
 // Sauvegarder automatiquement avant de quitter la page (bouton retour iOS)
 window.addEventListener('beforeunload', function(){ try{_saveCurrentRapportSlot();}catch(e){} try{doSave();}catch(e){} try{_sbSaveContenus();}catch(e){} try{_sbSaveLogements();}catch(e){} });
 window.addEventListener('pagehide', function(){ try{doSave();}catch(e){} try{_sbSaveContenus();}catch(e){} try{_sbSaveLogements();}catch(e){} });
-document.addEventListener('visibilitychange', function(){ if(document.hidden){ try{doSave();}catch(e){} try{_sbSaveContenus();}catch(e){} try{_sbSaveLogements();}catch(e){} } });
+document.addEventListener('visibilitychange', function(){
+  if(document.hidden){
+    try{doSave();}catch(e){} try{_sbSaveContenus();}catch(e){} try{_sbSaveLogements();}catch(e){}
+  } else {
+    // ═══ PWA RESUME — sync avec Supabase quand l'app revient au premier plan ═══
+    if(_sb && _sbUser){
+      _sbLoadInterventions(function(sbDossiers){
+        if(!sbDossiers||!sbDossiers.length) return;
+        var sbIds={};
+        sbDossiers.forEach(function(sbd){ if(sbd._sbId) sbIds[sbd._sbId]=true; });
+        var removed=0;
+        _allDossiers=_allDossiers.filter(function(d){
+          if(d._sbId && !sbIds[d._sbId]){ removed++; return false; }
+          return true;
+        });
+        if(removed>0) console.log('[FDE] PWA resume: '+removed+' dossier(s) retiré(s)');
+        _restoreDashboardFromDossiers();
+      });
+    }
+  }
+});
 
 
 });
@@ -3905,17 +3925,26 @@ function deleteDossier(uid){
   } catch(e){}
   // ═══ SUPABASE — Supprimer l'intervention + données liées du serveur ═══
   if (sbId && _sb) {
-    // Supprimer enfants d'abord (sinon contrainte FK bloque)
-    _sb.from('contenus').delete().eq('intervention_id', sbId).then(function(r){
-      if(r.error) console.warn('[FDE] Erreur delete contenus:', r.error.message);
-    });
-    _sb.from('logements').delete().eq('intervention_id', sbId).then(function(r){
-      if(r.error) console.warn('[FDE] Erreur delete logements:', r.error.message);
-    });
-    // Puis supprimer l'intervention
-    setTimeout(function(){ _sbDeleteIntervention(sbId); }, 1000);
+    console.log('[FDE] Suppression Supabase: '+sbId);
+    // 1. Supprimer contenus
+    _sb.from('contenus').delete().eq('intervention_id', sbId).then(function(r1){
+      if(r1.error) console.warn('[FDE] Erreur delete contenus:', r1.error.message);
+      else console.log('[FDE] Contenus supprimés');
+      // 2. Supprimer logements
+      return _sb.from('logements').delete().eq('intervention_id', sbId);
+    }).then(function(r2){
+      if(r2 && r2.error) console.warn('[FDE] Erreur delete logements:', r2.error.message);
+      else console.log('[FDE] Logements supprimés');
+      // 3. Supprimer l'intervention
+      return _sb.from('interventions').delete().eq('id', sbId);
+    }).then(function(r3){
+      if(r3 && r3.error) console.warn('[FDE] ❌ Erreur delete intervention:', r3.error.message);
+      else console.log('[FDE] ✅ Intervention supprimée: '+sbId);
+    }).catch(function(err){ console.error('[FDE] Delete chain error:', err); });
   }
   toast('Dossier supprimé et espace libéré ✓');
+  // Forcer la sauvegarde locale pour que la suppression persiste
+  try{ doSave(); }catch(e){}
 }
 
 function loadFromIDB(cb, key){
