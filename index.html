@@ -2042,35 +2042,10 @@ function _recoverSharedImages(){
       }
     }
   }
-  // NE PAS inclure les photos de supports (elles sont dans le tableau de dégâts uniquement)
-  // Scan uniquement les éditeurs investigation et conclusion
   if(_sharedImages.length) _sharedImgPanelsDirty=true;
-
-  // 2. ═══ TOUJOURS lister Supabase Storage — source de vérité ═══
-  if(_sb && window._dossier){
-    var d=window._dossier;
-    var ref=(d.ref||'').replace(/[^a-zA-Z0-9_-]/g,'');
-    var client=(d.client||'').replace(/[^a-zA-Z0-9_-]/g,'').substring(0,30);
-    var folder=(ref||'noref')+'_'+(client||'noclient');
-    console.log('[FDE] Galerie: listing Storage folder "'+folder+'"');
-    _sb.storage.from('photos').list(folder,{limit:200}).then(function(r){
-      if(r.error){ console.warn('[FDE] Galerie erreur:', r.error.message); return; }
-      if(!r.data||!r.data.length){ console.log('[FDE] Galerie: dossier vide'); return; }
-      var added=0;
-      r.data.forEach(function(f){
-        if(!f.name) return;
-        // Exclure supports, façades, rapports PDF et logo
-        if(f.name.indexOf('support_')===0 || f.name.indexOf('facade_')===0 || f.name.indexOf('rapport_')===0 || f.name==='logo.jpg') return;
-        var url='https://wsgzlchfaoydpdozarfi.supabase.co/storage/v1/object/public/photos/'+folder+'/'+f.name;
-        if(!found[url]){ found[url]=true; _sharedImages.push({src:url, storageUrl:url, name:f.name}); added++; }
-      });
-      if(added>0){
-        _sharedImgPanelsDirty=true;
-        _ensureSharedImgPanels();
-        console.log('[FDE] Galerie: +'+added+' photos depuis Storage (total: '+_sharedImages.length+')');
-      }
-    });
-  }
+  // NE PAS lister Storage — le dossier Storage est par client, pas par intervention
+  // La galerie ne contient que les photos des éditeurs actuels + ajout manuel
+  if(_sharedImages.length>0) _ensureSharedImgPanels();
 }
 function showPanel(id){
   var el=document.getElementById(id);
@@ -6813,11 +6788,14 @@ function _loadRapportSlot(uid){
   _investiContents=slot.investiContents?JSON.parse(JSON.stringify(slot.investiContents)):{};
   _currentLogId=slot.currentLogId||null;
   var edI=document.getElementById('editor-investi');
-  // Investigation — restauré EXACTEMENT comme la conclusion
-  // MAIS ignorer le placeholder "Sélectionnez un logement" qui écraserait le vrai contenu
+  // ═══ TOUJOURS VIDER l'investigation avant de restaurer ce dossier ═══
+  if(edI) edI.innerHTML='<p style="color:var(--text-muted)">Chargement...</p>';
+  // Puis restaurer UNIQUEMENT le contenu de CE dossier
   if(edI) setTimeout(function(){
-    if(slot.investiHTML && slot.investiHTML.length>200 && slot.investiHTML.indexOf('lectionnez un logement')<0){
+    if(slot.investiHTML && slot.investiHTML.length>100 && slot.investiHTML.indexOf('lectionnez un logement')<0){
       edI.innerHTML=slot.investiHTML;
+    } else {
+      edI.innerHTML='<p style="color:var(--text-muted)">Sélectionnez un logement visité via le bouton 🏠 à droite pour charger le squelette.</p>';
     }
   }, 800);
   // 6. Conclusion — différé
