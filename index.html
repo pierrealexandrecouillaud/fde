@@ -4261,11 +4261,19 @@ function restoreSession(){
         _allDossiers = _allDossiers.filter(function(d){
           if(d._sbId && !sbIds[d._sbId]){
             console.log('[FDE] Dossier supprimé du serveur, retiré localement: '+d._sbId.substring(0,8));
+            // Nettoyer le slot IDB de ce dossier
+            if(d._uid){
+              if(_dossierSlots[d._uid]) delete _dossierSlots[d._uid];
+              try{ deleteFromIDB('fde_slot_'+d._uid); }catch(e){}
+            }
             removed++; return false;
           }
           return true;
         });
-        if(removed>0) _restoreDashboardFromDossiers();
+        if(removed>0){
+          _restoreDashboardFromDossiers();
+          console.log('[FDE] '+removed+' dossier(s) retiré(s) (supprimés sur le serveur)');
+        }
         // Sauvegarder le merge localement
         try { localStorage.setItem('fde_all_dossiers_ls', JSON.stringify(_allDossiers)); } catch(e){}
 
