@@ -4273,11 +4273,12 @@ function restoreSession(){
             return true;
           });
           if(removed>0){
-            _restoreDashboardFromDossiers();
             console.log('[FDE] '+removed+' dossier(s) retiré(s)');
           } else {
             console.log('[FDE] Aucun dossier à retirer');
           }
+          // TOUJOURS rafraîchir le dashboard pour refléter l'état Supabase
+          _restoreDashboardFromDossiers();
         }catch(syncErr){ console.error('[FDE] Sync erreur:', syncErr); }
         // Sauvegarder le merge localement
         try { localStorage.setItem('fde_all_dossiers_ls', JSON.stringify(_allDossiers)); } catch(e){}
