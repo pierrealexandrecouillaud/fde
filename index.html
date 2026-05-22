@@ -3500,8 +3500,8 @@ function loadImagesBatch(files, startIndex, batchSize, onComplete){
     compressImg(e.target.result, 1200, 0.85, function(compressed){
       var imgData = {src: compressed, name: file.name};
       _sharedImages.push(imgData);
-      addImgToPanel('fp-images-i-list', imgData);
-      addImgToPanel('fp-images-c-list', imgData);
+      _sharedImgPanelsDirty=true;
+      _ensureSharedImgPanels();
       updateProgressBar(startIndex + 1, files.length);
       // ═══ SUPABASE — Upload en arrière-plan ═══
       var context = _imgEdId === 'editor-conclusion' ? 'conclusion' : 'investigation';
@@ -3777,7 +3777,12 @@ function doSave(){
       investiContents:_saveInvesti,
       currentLogId:_currentLogId,
       conclusion:edConcluNow?_sanitizeInvestiHTML(edConcluNow.innerHTML):'',
-      investigationDirect:edInvNow?(edInvNow.innerHTML.indexOf('lectionnez un logement')>=0?'':_sanitizeInvestiHTML(edInvNow.innerHTML)):'',
+      investigationDirect:(function(){
+        if(!edInvNow) return '';
+        var h=edInvNow.innerHTML||'';
+        if(h.indexOf('lectionnez un logement')>=0||h.indexOf('Chargement')>=0) return '';
+        return _sanitizeInvestiHTML(h);
+      })(),
       investigationDossierUid:window._dossier?window._dossier._uid:'',
       logements:logementsData,
       phc:_phc,
@@ -6662,7 +6667,12 @@ function _saveCurrentRapportSlot(){
     logementsHTML:_safeLogHTML,
     inputVals:inputVals,
     conclusion:edConclu?_sanitizeInvestiHTML(edConclu.innerHTML):'',
-    investiHTML:edInvesti?(edInvesti.innerHTML.indexOf('lectionnez un logement')>=0?'':_sanitizeInvestiHTML(edInvesti.innerHTML)):'',
+    investiHTML:(function(){
+      if(!edInvesti) return '';
+      var h=edInvesti.innerHTML||'';
+      if(h.indexOf('lectionnez un logement')>=0||h.indexOf('Chargement')>=0) return '';
+      return _sanitizeInvestiHTML(h);
+    })(),
     investiContents:JSON.parse(JSON.stringify(_safeInvesti)),
     currentLogId:_currentLogId,
     activeSkelType:_activeSkelType||'',
@@ -6788,16 +6798,8 @@ function _loadRapportSlot(uid){
   _investiContents=slot.investiContents?JSON.parse(JSON.stringify(slot.investiContents)):{};
   _currentLogId=slot.currentLogId||null;
   var edI=document.getElementById('editor-investi');
-  // ═══ TOUJOURS VIDER l'investigation avant de restaurer ce dossier ═══
-  if(edI) edI.innerHTML='<p style="color:var(--text-muted)">Chargement...</p>';
-  // Puis restaurer UNIQUEMENT le contenu de CE dossier
-  if(edI) setTimeout(function(){
-    if(slot.investiHTML && slot.investiHTML.length>100 && slot.investiHTML.indexOf('lectionnez un logement')<0){
-      edI.innerHTML=slot.investiHTML;
-    } else {
-      edI.innerHTML='<p style="color:var(--text-muted)">Sélectionnez un logement visité via le bouton 🏠 à droite pour charger le squelette.</p>';
-    }
-  }, 800);
+  // Investigation — IDENTIQUE à la conclusion : slot → éditeur, point final
+  if(edI) setTimeout(function(){ edI.innerHTML=slot.investiHTML||''; }, 800);
   // 6. Conclusion — différé
   var edC=document.getElementById('editor-conclusion');
   if(edC) setTimeout(function(){ edC.innerHTML=slot.conclusion||''; }, 800);
