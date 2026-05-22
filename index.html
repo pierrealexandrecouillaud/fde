@@ -2102,7 +2102,8 @@ function goTo(pageId){
   // ═══ FAÇADE — charger depuis Supabase si absente localement ═══
   if(pageId==='dommage'||pageId==='tableau'||pageId==='investigation'||pageId==='conclusion'){
     var _facadeImg=document.querySelector('.facade-img');
-    if(_facadeImg && (!_facadeImg.src || _facadeImg.src.indexOf('http')<0)){
+    var _hasFacade=_facadeImg && _facadeImg.src && _facadeImg.src.indexOf('supabase.co')>0;
+    if(!_hasFacade){
       var _fd=window._dossier;
       if(_fd && _fd._sbId && _sb){
         _sbLoadContenus(_fd._sbId, function(c){
@@ -4270,8 +4271,8 @@ function archiveOldSlots(){
     }
     // Vider les images partagées
     slot.sharedImages=[];
-    // Vider facadeSrc (garder un flag)
-    if(slot.facadeSrc){ slot._hadFacade=true; slot.facadeSrc=''; }
+    // Vider facadeSrc base64 (garder les URLs Storage)
+    if(slot.facadeSrc && slot.facadeSrc.indexOf('data:')===0){ slot._hadFacade=true; slot.facadeSrc=''; }
     // Vider investigation images (garder le texte)
     if(slot.investiContents){
       Object.keys(slot.investiContents).forEach(function(k){
