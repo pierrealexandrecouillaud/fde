@@ -3015,7 +3015,9 @@ function _loadInvestiFromSupabase(curD){
       console.log('[FDE] Façade restaurée depuis Supabase');
     }
   });
-}(ed, label){
+}
+
+function _loadEmptySkeleton(ed, label){
   var titreLog='<p><strong>Intervention de recherche de fuite '+label+'</strong></p><br>';
   var corps;
   if(_activeSkelType && SKEL_INVESTI[_activeSkelType]){
