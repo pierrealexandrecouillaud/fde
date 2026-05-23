@@ -2137,9 +2137,10 @@ function goTo(pageId){
           // Tableau de dégâts
           if(c && c.tableauHtml && c.tableauHtml.length>50){
             var logCont=document.getElementById('logements-container');
-            if(logCont && logCont.innerHTML.length<100){
+            if(logCont && !logCont.querySelector('.photo-thumb img[src*="supabase"]')){
               logCont.innerHTML=c.tableauHtml;
               _fixInvestiImages(logCont);
+              updateLogsVisites();
             }
           }
         });
@@ -6897,47 +6898,48 @@ function _restoreFromSupabase(d, onDone){
   toast('Chargement depuis le serveur...');
   _viderRapportPourNouvelleInterv();
   
-  // 1. Charger les logements depuis Supabase
-  _sbLoadLogements(d._sbId, function(logements){
-    if(logements && logements.length){
-      logements.forEach(function(log){
-        addLogement();
-        var lid='log-'+_lc;
-        var occ=document.getElementById(lid+'-occ'); if(occ) occ.value=log.occupant||'';
-        var apt=document.getElementById(lid+'-apt'); if(apt) apt.value=log.appartement||'';
-        var eta=document.getElementById(lid+'-eta'); if(eta) eta.value=log.etage||'';
-        var vis=document.getElementById(lid+'-vis'); if(vis) vis.checked=!!log.visite;
-        var sin=document.getElementById(lid+'-sin'); if(sin) sin.checked=!!log.sinistre;
-      });
-      updateLogsVisites();
-    } else {
-      addLogement();
-    }
-    
-    // 2. Charger les contenus (investigation + conclusion) depuis Supabase
-    _sbLoadContenus(d._sbId, function(contenus){
-      if(contenus){
-        if(contenus.investiContents){
-          Object.keys(contenus.investiContents).forEach(function(logId){
-            if(contenus.investiContents[logId] && contenus.investiContents[logId].length>20){
-              _investiContents[logId]=contenus.investiContents[logId];
-            }
-          });
-        }
-        if(contenus.conclusion){
-          var edC=document.getElementById('editor-conclusion');
-          if(edC) edC.innerHTML=contenus.conclusion;
-        }
-        if(contenus.skelType) _activeSkelType=contenus.skelType;
-        // Tableau de dégâts — restaurer si disponible
-        if(contenus.tableauHtml && contenus.tableauHtml.length>50){
-          var logCont=document.getElementById('logements-container');
-          if(logCont){ logCont.innerHTML=contenus.tableauHtml; _fixInvestiImages(logCont); }
-        }
+  // 1. Charger les contenus EN PREMIER (tableau + investigation + conclusion)
+  _sbLoadContenus(d._sbId, function(contenus){
+    if(contenus){
+      // Tableau de dégâts complet — PRIORITÉ sur les logements individuels
+      if(contenus.tableauHtml && contenus.tableauHtml.length>50){
+        var logCont=document.getElementById('logements-container');
+        if(logCont){ logCont.innerHTML=contenus.tableauHtml; _fixInvestiImages(logCont); }
+        updateLogsVisites();
+      } else {
+        // Pas de tableau HTML → créer les logements depuis la table logements
+        _sbLoadLogements(d._sbId, function(logements){
+          if(logements && logements.length){
+            logements.forEach(function(log){
+              addLogement();
+              var lid='log-'+_lc;
+              var occ=document.getElementById(lid+'-occ'); if(occ) occ.value=log.occupant||'';
+              var apt=document.getElementById(lid+'-apt'); if(apt) apt.value=log.appartement||'';
+              var eta=document.getElementById(lid+'-eta'); if(eta) eta.value=log.etage||'';
+              var vis=document.getElementById(lid+'-vis'); if(vis) vis.checked=!!log.visite;
+              var sin=document.getElementById(lid+'-sin'); if(sin) sin.checked=!!log.sinistre;
+            });
+            updateLogsVisites();
+          } else {
+            addLogement();
+          }
+        });
       }
-      toast('Dossier restauré depuis le serveur ✓');
-      if(onDone) onDone();
-    });
+      if(contenus.investiContents){
+        Object.keys(contenus.investiContents).forEach(function(logId){
+          if(contenus.investiContents[logId] && contenus.investiContents[logId].length>20){
+            _investiContents[logId]=contenus.investiContents[logId];
+          }
+        });
+      }
+      if(contenus.conclusion){
+        var edC=document.getElementById('editor-conclusion');
+        if(edC) edC.innerHTML=contenus.conclusion;
+      }
+      if(contenus.skelType) _activeSkelType=contenus.skelType;
+    }
+    toast('Dossier restauré depuis le serveur ✓');
+    if(onDone) onDone();
   });
 }
 
