@@ -4992,8 +4992,8 @@ function _sbGeneratePDF(){
 var _pdfGenerating=false;
 var _pdfGenTimer=null;
 function downloadPDF(){
-  try { console.log('[FDE] downloadPDF appelée — PDF serveur'); } catch(e){}
-  _sbGeneratePDF();
+  try { console.log('[FDE] downloadPDF appelée — PDF client'); } catch(e){}
+  genererPDF();
 }
 
 // Convertit n'importe quelle image en dataURL JPEG via canvas
