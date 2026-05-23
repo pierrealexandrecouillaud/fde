@@ -3353,7 +3353,10 @@ function addPhotoToSupport(sid){
       if(idx>=files.length){
         var wrap=document.getElementById(sid+'-photos');
         toast((wrap?wrap.querySelectorAll('.photo-thumb').length:files.length)+' photo(s) ajoutée(s)');
-        autoSave(); return;
+        autoSave();
+        // Sauvegarder vers Supabase immédiatement (tableau de dégâts)
+        setTimeout(function(){ try{_sbSaveContenus();}catch(e){} }, 2000);
+        return;
       }
       var file=files[idx++];
       var rd=new FileReader();
@@ -3380,6 +3383,8 @@ function addPhotoToSupport(sid){
             if (url) {
               im.src = url;
               im.dataset.storageUrl = url;
+              // Re-sauvegarder le tableau avec l'URL Storage
+              try{_sbSaveContenus();}catch(e){}
             }
           });
           setTimeout(processNext, 80);
