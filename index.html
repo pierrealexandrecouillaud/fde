@@ -1644,6 +1644,20 @@ function _sbSaveContenus() {
   // 3. Sauvegarder le tableau de dégâts (logements-container HTML)
   var logCont = document.getElementById('logements-container');
   if (logCont && logCont.innerHTML && logCont.innerHTML.length > 50) {
+    // Synchroniser les valeurs des inputs/checkboxes dans les attributs HTML
+    logCont.querySelectorAll('input,select,textarea').forEach(function(inp){
+      if(inp.type==='checkbox'){
+        if(inp.checked) inp.setAttribute('checked','checked');
+        else inp.removeAttribute('checked');
+      } else if(inp.tagName==='SELECT'){
+        inp.querySelectorAll('option').forEach(function(o){ 
+          if(o.value===inp.value) o.setAttribute('selected','selected');
+          else o.removeAttribute('selected');
+        });
+      } else {
+        inp.setAttribute('value', inp.value||'');
+      }
+    });
     var tableauHtml = _sanitizeInvestiHTML(logCont.innerHTML);
     _sb.from('contenus').upsert({
       intervention_id: d._sbId,
