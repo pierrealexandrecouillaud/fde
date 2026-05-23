@@ -6006,8 +6006,12 @@ function buildPDF(jsPDF, facadeJpeg, photosJpeg, investiJpegMap, investiImgMapBy
           var isTitle = isBold || isCentered;
           if(isTitle) y+=5;
           _prevWasBold = isTitle;
-          var _lx=isCentered?(M+cw/2):M;
-          var _al=isCentered?'center':'left';
+          var _lx=M;
+          var _al='left';
+          // Centrer UNIQUEMENT les titres courts et gras (pas le texte normal)
+          if(isCentered && isBold && fullLine.length<60 && fullLine.charAt(0)!=='\u2013' && fullLine.charAt(0)!=='-'){
+            _lx=M+cw/2; _al='center';
+          }
           var lines=doc.splitTextToSize(fullLine.replace(/<[^>]*>/g,''),cw);
           // ═══ ANTI-COUPURE : vérifier que TOUT le paragraphe tient sur la page ═══
           var lineH=fSize*0.55;
@@ -6117,7 +6121,7 @@ function buildPDF(jsPDF, facadeJpeg, photosJpeg, investiJpegMap, investiImgMapBy
     var nomFichier = _clientName ? ('Rapport d\'intervention - ' + _clientName) : 'Rapport d\'intervention';
     nomFichier = nomFichier.replace(/[\/\\:*?"<>|]/g,'') + '.pdf';
     doc.save(nomFichier);
-    toast('\u2705 PDF téléchargé — ouvrez l\'app Fichiers pour le voir');
+    toast('\u2705 PDF téléchargé dans le dossier Téléchargements');
     // ═══ SUPABASE — Sauvegarder le PDF dans Storage ═══
     if (_sb && window._dossier && window._dossier._sbId) {
       try {
