@@ -1640,6 +1640,21 @@ function _sbSaveContenus() {
       if (r.error) console.warn('[FDE] Erreur save conclusion:', r.error.message);
     });
   }
+
+  // 3. Sauvegarder le tableau de dégâts (logements-container HTML)
+  var logCont = document.getElementById('logements-container');
+  if (logCont && logCont.innerHTML && logCont.innerHTML.length > 50) {
+    var tableauHtml = _sanitizeInvestiHTML(logCont.innerHTML);
+    _sb.from('contenus').upsert({
+      intervention_id: d._sbId,
+      logement_id: '_tableau',
+      investigation_html: tableauHtml,
+      skel_type: _activeSkelType || ''
+    }, { onConflict: 'intervention_id,logement_id' })
+    .then(function(r) {
+      if (r.error) console.warn('[FDE] Erreur save tableau:', r.error.message);
+    });
+  }
 }
 
 // Charger les contenus depuis Supabase pour une intervention
@@ -1652,13 +1667,16 @@ function _sbLoadContenus(sbInterventionId, callback) {
         callback({});
         return;
       }
-      var contenus = { investiContents: {}, conclusion: '', skelType: '', facadeUrl: '' };
+      var contenus = { investiContents: {}, conclusion: '', skelType: '', facadeUrl: '', tableauHtml: '' };
       (result.data || []).forEach(function(row) {
         if (row.logement_id === '_conclusion') {
           contenus.conclusion = row.conclusion_html || '';
           contenus.skelType = row.skel_type || '';
         } else if (row.logement_id === '_facade') {
           contenus.facadeUrl = row.investigation_html || '';
+        } else if (row.logement_id === '_tableau') {
+          contenus.tableauHtml = row.investigation_html || '';
+          if(row.skel_type) contenus.skelType = row.skel_type;
         } else {
           contenus.investiContents[row.logement_id] = row.investigation_html || '';
           if (row.skel_type) contenus.skelType = row.skel_type;
@@ -2107,6 +2125,7 @@ function goTo(pageId){
       var _fd=window._dossier;
       if(_fd && _fd._sbId && _sb){
         _sbLoadContenus(_fd._sbId, function(c){
+          // Façade
           if(c && c.facadeUrl && c.facadeUrl.indexOf('http')===0){
             ['d','t','i','c','fin'].forEach(function(id){
               var img=document.getElementById('facade-img-'+id); if(!img) return;
@@ -2114,6 +2133,14 @@ function goTo(pageId){
               var zone=img.parentElement;
               if(zone){ var ic=zone.querySelector('.fz-icon'); var lb=zone.querySelector('.fz-label'); if(ic)ic.style.display='none'; if(lb)lb.style.display='none'; }
             });
+          }
+          // Tableau de dégâts
+          if(c && c.tableauHtml && c.tableauHtml.length>50){
+            var logCont=document.getElementById('logements-container');
+            if(logCont && logCont.innerHTML.length<100){
+              logCont.innerHTML=c.tableauHtml;
+              _fixInvestiImages(logCont);
+            }
           }
         });
       }
@@ -6902,6 +6929,11 @@ function _restoreFromSupabase(d, onDone){
           if(edC) edC.innerHTML=contenus.conclusion;
         }
         if(contenus.skelType) _activeSkelType=contenus.skelType;
+        // Tableau de dégâts — restaurer si disponible
+        if(contenus.tableauHtml && contenus.tableauHtml.length>50){
+          var logCont=document.getElementById('logements-container');
+          if(logCont){ logCont.innerHTML=contenus.tableauHtml; _fixInvestiImages(logCont); }
+        }
       }
       toast('Dossier restauré depuis le serveur ✓');
       if(onDone) onDone();
