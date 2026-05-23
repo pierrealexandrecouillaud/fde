@@ -5355,7 +5355,7 @@ function _renderHTMLToPDF(doc, container, M, cw, WH, OR, BL, BK, GR,
       if(!t){ setY(y+3); return; }
       sfFn(11,'normal',BK);
       doc.splitTextToSize(t,cw).forEach(function(l){
-        if(getY()>264){ footerFn(); pageHeaderFn(); setY(24); sfFn(11,'normal',BK); }
+        if(getY()>267){ footerFn(); pageHeaderFn(); setY(24); sfFn(11,'normal',BK); }
         doc.text(l,M,getY()); setY(getY()+5.8);
       });
       return;
@@ -5364,7 +5364,7 @@ function _renderHTMLToPDF(doc, container, M, cw, WH, OR, BL, BK, GR,
     if(node.nodeName==='H2'||node.nodeName==='H3'){
       var _ht=(node.innerText||node.textContent||'').trim();
       if(_ht){ sfFn(18,'italic',BK);
-        if(getY()>264){footerFn();pageHeaderFn();setY(27);sfFn(18,'italic',BK);}
+        if(getY()>267){footerFn();pageHeaderFn();setY(27);sfFn(18,'italic',BK);}
         doc.splitTextToSize(_ht,cw).forEach(function(l){ doc.text(l,M,getY()); setY(getY()+8); });
         setY(getY()+2); }
       return;
@@ -5379,7 +5379,7 @@ function _renderHTMLToPDF(doc, container, M, cw, WH, OR, BL, BK, GR,
       if(/^\d+\.?\s+(Remarque)/i.test(_pt)){
         // Titre "2. Remarque..." → italique 18
         sfFn(18,'italic',BK);
-        if(getY()>264){footerFn();pageHeaderFn();setY(27);sfFn(18,'italic',BK);}
+        if(getY()>267){footerFn();pageHeaderFn();setY(27);sfFn(18,'italic',BK);}
         doc.splitTextToSize(_pt,cw).forEach(function(l){ doc.text(l,M,getY()); setY(getY()+8); });
         setY(getY()+4); return;
       }
@@ -5446,7 +5446,7 @@ function _renderHTMLToPDF(doc, container, M, cw, WH, OR, BL, BK, GR,
           if(!w) return;
           var ww=doc.getTextWidth(w);
           if(curX+ww>M+cw && curX>M){ curX=M; setY(getY()+5.4); }
-          if(getY()>264){ footerFn(); pageHeaderFn(); setY(20); }
+          if(getY()>267){ footerFn(); pageHeaderFn(); setY(20); }
           sfFn(11, segBold?'bold':'normal', segCol);
           doc.text(w,curX,getY());
           curX+=ww;
@@ -5767,7 +5767,7 @@ function buildPDF(jsPDF, facadeJpeg, photosJpeg, investiJpegMap, investiImgMapBy
     if(allDmgPhotos.length){ y+=1; }
     for(var dpi=0;dpi<allDmgPhotos.length;dpi+=2){
       var iph=65, ipw=84;
-      if(y+iph+6>292){ footer(); doc.addPage(); pageHeader(); y=22; }
+      if(y+iph+6>268){ footer(); doc.addPage(); pageHeader(); y=22; }
       var ph1=allDmgPhotos[dpi], ph2=allDmgPhotos[dpi+1];
       // Utiliser directement le src stocké dans allDmgPhotos
       sf(13,'bold',OR);
@@ -6016,7 +6016,7 @@ function buildPDF(jsPDF, facadeJpeg, photosJpeg, investiJpegMap, investiImgMapBy
             if(l.trim().charAt(0)==='\u2013'||l.trim().charAt(0)==='\u2014'||l.trim().substring(0,2)==='- '||(l.trim().charAt(0)==='-'&&l.trim().charAt(1)===' ')) paraH+=4;
             paraH+=lineH;
           });
-          if(y+paraH>292 && y>30){
+          if(y+paraH>268 && y>30){
             footer();doc.addPage();pageHeader();y=22;sf(fSize,fStyle,col);
           }
           // Vérifier si le paragraphe a des couleurs multiples
@@ -6068,7 +6068,7 @@ function buildPDF(jsPDF, facadeJpeg, photosJpeg, investiJpegMap, investiImgMapBy
           var allImgObjs=lineImgs;
           for(var bi=0;bi<allImgObjs.length;bi+=2){
             var biph=70, bipw=85;
-            if(y+biph+6>292){footer();doc.addPage();pageHeader();y=22;}
+            if(y+biph+6>268){footer();doc.addPage();pageHeader();y=22;}
             var src1=allImgObjs[bi].src||null;
             var src2=allImgObjs[bi+1]?allImgObjs[bi+1].src||null:null;
             // Numéro déjà stocké par flushPhotoBucket (pas de double comptage)
