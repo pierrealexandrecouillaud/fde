@@ -2160,10 +2160,11 @@ function goTo(pageId){
               if(zone){ var ic=zone.querySelector('.fz-icon'); var lb=zone.querySelector('.fz-label'); if(ic)ic.style.display='none'; if(lb)lb.style.display='none'; }
             });
           }
-          // Tableau de dégâts
+          // Tableau de dégâts — charger UNIQUEMENT si pas déjà chargé par _restoreFromSupabase
           if(c && c.tableauHtml && c.tableauHtml.length>50){
             var logCont=document.getElementById('logements-container');
-            if(logCont && !logCont.querySelector('.photo-thumb img[src*="supabase"]')){
+            // Ne pas écraser si le container a déjà du vrai contenu (pièces, coches)
+            if(logCont && !logCont.querySelector('input[type="checkbox"]:checked')){
               logCont.innerHTML=c.tableauHtml;
               _fixInvestiImages(logCont);
               updateLogsVisites();
@@ -2407,7 +2408,7 @@ document.addEventListener('DOMContentLoaded',function(){
     var activePage=document.querySelector('.page.active');
     if(!activePage) return;
     var pid=activePage.id;
-    if(pid==='page-investigation'||pid==='page-conclusion'){
+    if(pid==='page-investigation'||pid==='page-conclusion'||pid==='page-dommage'||pid==='page-tableau'){
       try{saveCurrentInvesti();}catch(e){}
       try{_sbSaveContenus();}catch(e){}
     }
