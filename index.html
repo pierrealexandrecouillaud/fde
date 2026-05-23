@@ -5818,11 +5818,18 @@ function buildPDF(jsPDF, facadeJpeg, photosJpeg, investiJpegMap, investiImgMapBy
       doc.addPage(); pageHeader(); y=22;
       var tmp=document.createElement('div'); tmp.innerHTML=htmlContent;
 
-      // Titre — italique 18pt PAS gras — première ligne du texte
-      var allLines=(tmp.innerText||tmp.textContent||'').split('\n').filter(function(l){ return l.trim(); });
+      // Titre — première ligne courte du HTML (pas tout le texte)
+      var _firstNode = tmp.querySelector('p,div') || tmp.firstChild;
+      var _titleText = '';
+      if(_firstNode){
+        _titleText = (_firstNode.innerText || _firstNode.textContent || '').trim();
+        // Si le titre est trop long (>80 chars), prendre juste le début
+        if(_titleText.length > 80) _titleText = _titleText.substring(0, 80) + '...';
+      }
+      if(!_titleText) _titleText = 'Intervention';
       sf(18,'italic',BK);
       var _invNum=window._sectionMap&&(window._sectionMap['investigation_'+lid]||window._sectionMap.investigation)||3;
-      doc.splitTextToSize(_invNum+'. '+(allLines[0]||'Intervention'),cw).forEach(function(l){ if(y>274){footer();doc.addPage();pageHeader();y=22;} doc.text(l,M,y,{maxWidth:cw}); y+=8; });
+      doc.splitTextToSize(_invNum+'. '+_titleText,cw).forEach(function(l){ if(y>274){footer();doc.addPage();pageHeader();y=22;} doc.text(l,M,y,{maxWidth:cw}); y+=8; });
       y+=3;
 
       // Parcourir les nœuds pour récupérer texte + images dans l'ordre
