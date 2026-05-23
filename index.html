@@ -1642,6 +1642,9 @@ function _sbSaveContenus() {
   }
 
   // 3. Sauvegarder le tableau de dégâts (TOUJOURS, sans conditions)
+  // SAUF si le tableau vient d'être chargé depuis le serveur (évite d'écraser les données fraîches)
+  if(window._tableauFromServer) { /* skip — données du serveur, pas de réécriture */ }
+  else {
   var logCont = document.getElementById('logements-container');
   if (logCont && logCont.children.length > 0) {
     // Synchroniser inputs/checkboxes → attributs HTML
@@ -1661,6 +1664,7 @@ function _sbSaveContenus() {
       if (r.error) console.warn('[FDE] Erreur save tableau:', r.error.message);
     });
   }
+  } // fin else _tableauFromServer
 }
 
 // Charger les contenus depuis Supabase pour une intervention
@@ -2123,35 +2127,37 @@ function goTo(pageId){
     _updateDashboardStatus(window._dossier._uid, window._dossier._status);
   }
   updateGlobalNav(pageId);
-  // ═══ FAÇADE — charger depuis Supabase si absente localement ═══
+  // ═══ SUPABASE — charger façade + tableau depuis le serveur ═══
   if(pageId==='dommage'||pageId==='tableau'||pageId==='investigation'||pageId==='conclusion'){
-    var _facadeImg=document.querySelector('.facade-img');
-    var _hasFacade=_facadeImg && _facadeImg.src && _facadeImg.src.indexOf('supabase.co')>0;
-    if(!_hasFacade){
-      var _fd=window._dossier;
-      if(_fd && _fd._sbId && _sb){
-        _sbLoadContenus(_fd._sbId, function(c){
-          // Façade
-          if(c && c.facadeUrl && c.facadeUrl.indexOf('http')===0){
-            ['d','t','i','c','fin'].forEach(function(id){
-              var img=document.getElementById('facade-img-'+id); if(!img) return;
-              img.src=c.facadeUrl; img.style.display='block'; img.dataset.storageUrl=c.facadeUrl;
-              var zone=img.parentElement;
-              if(zone){ var ic=zone.querySelector('.fz-icon'); var lb=zone.querySelector('.fz-label'); if(ic)ic.style.display='none'; if(lb)lb.style.display='none'; }
-            });
+    var _fd=window._dossier;
+    if(_fd && _fd._sbId && _sb){
+      _sbLoadContenus(_fd._sbId, function(c){
+        // Façade
+        var _facadeImg=document.querySelector('.facade-img');
+        var _hasFacade=_facadeImg && _facadeImg.src && _facadeImg.src.indexOf('supabase.co')>0;
+        if(!_hasFacade && c && c.facadeUrl && c.facadeUrl.indexOf('http')===0){
+          ['d','t','i','c','fin'].forEach(function(id){
+            var img=document.getElementById('facade-img-'+id); if(!img) return;
+            img.src=c.facadeUrl; img.style.display='block'; img.dataset.storageUrl=c.facadeUrl;
+            var zone=img.parentElement;
+            if(zone){ var ic=zone.querySelector('.fz-icon'); var lb=zone.querySelector('.fz-label'); if(ic)ic.style.display='none'; if(lb)lb.style.display='none'; }
+          });
+        }
+        // Tableau de dégâts — TOUJOURS mettre à jour depuis Supabase
+        if(c && c.tableauHtml && c.tableauHtml.length>50){
+          var logCont=document.getElementById('logements-container');
+          if(logCont){
+            logCont.innerHTML=c.tableauHtml;
+            _fixInvestiImages(logCont);
+            var cards=logCont.querySelectorAll('.logement-card');
+            if(cards.length>0) _lc=cards.length;
+            updateLogsVisites();
+            // Empêcher la sauvegarde de réécrire Supabase pendant 30s
+            window._tableauFromServer=true;
+            setTimeout(function(){ window._tableauFromServer=false; }, 30000);
           }
-          // Tableau de dégâts — charger UNIQUEMENT si pas déjà chargé par _restoreFromSupabase
-          if(c && c.tableauHtml && c.tableauHtml.length>50){
-            var logCont=document.getElementById('logements-container');
-            // Ne pas écraser si le container a déjà du vrai contenu (pièces, coches)
-            if(logCont && !logCont.querySelector('input[type="checkbox"]:checked')){
-              logCont.innerHTML=c.tableauHtml;
-              _fixInvestiImages(logCont);
-              updateLogsVisites();
-            }
-          }
-        });
-      }
+        }
+      });
     }
   }
   // Investigation : auto-charger premier logement visité
