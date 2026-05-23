@@ -2035,6 +2035,17 @@ function _ensureSharedImgPanels(){
   if(!_sharedImages.length){
     _recoverSharedImages();
   }
+  // ═══ DÉDUPLIQUER — par URL ou par nom de fichier ═══
+  var _seen={};
+  _sharedImages = _sharedImages.filter(function(img){
+    var key = img.storageUrl || img.src || img.name || '';
+    if(!key || key.length<10) return true; // garder si pas de clé fiable
+    // Pour base64, utiliser les 80 premiers chars comme clé
+    if(key.indexOf('data:')===0) key=key.substring(0,80);
+    if(_seen[key]) return false;
+    _seen[key]=true;
+    return true;
+  });
   if(!_sharedImgPanelsDirty || !_sharedImages.length) return;
   _sharedImgPanelsDirty=false;
   var listI=document.getElementById('fp-images-i-list');
@@ -3648,23 +3659,34 @@ function loadImagesBatch(files, startIndex, batchSize, onComplete){
   rd.onload = function(e){
     compressImg(e.target.result, 1200, 0.85, function(compressed){
       var imgData = {src: compressed, name: file.name};
-      _sharedImages.push(imgData);
-      _sharedImgPanelsDirty=true;
-      _ensureSharedImgPanels();
-      updateProgressBar(startIndex + 1, files.length);
-      // ═══ SUPABASE — Upload avec file d'attente (max 3 simultanés) ═══
-      _queueUpload(compressed, imgData);
-      // Sauvegarde intermédiaire toutes les 30 photos
-      if((startIndex+1) % 30 === 0){
-        try{saveCurrentInvesti();}catch(e2){}
-        try{_sbSaveContenus();}catch(e2){}
-        toast('💾 Sauvegarde intermédiaire ('+Math.round((startIndex+1)/files.length*100)+'%)');
+      // Vérifier les doublons (même nom de fichier)
+      var isDuplicate = _sharedImages.some(function(existing){
+        return existing.name === file.name;
+      });
+      if(!isDuplicate){
+        _sharedImages.push(imgData);
+        _sharedImgPanelsDirty=true;
+        _ensureSharedImgPanels();
       }
-      // Libérer mémoire — délai plus long pour laisser le GC travailler
-      var delay = (startIndex+1) % 30 === 0 ? 1000 : 200;
+      updateProgressBar(startIndex + 1, files.length);
+      // ═══ SUPABASE — Upload en arrière-plan ═══
+      var context = _imgEdId === 'editor-conclusion' ? 'conclusion' : 'investigation';
+      _sbUploadPhoto(compressed, context, function(url) {
+        if (url) {
+          imgData.src = url;
+          imgData.storageUrl = url;
+          ['fp-images-i-list','fp-images-c-list'].forEach(function(lid) {
+            var list = document.getElementById(lid);
+            if (!list) return;
+            list.querySelectorAll('.img-prev img').forEach(function(img) {
+              if (img.src === compressed) img.src = url;
+            });
+          });
+        }
+      });
       setTimeout(function(){
         loadImagesBatch(files, startIndex + 1, batchSize, onComplete);
-      }, delay);
+      }, 200);
     });
   };
   rd.onerror = function(){
@@ -3674,44 +3696,6 @@ function loadImagesBatch(files, startIndex, batchSize, onComplete){
     }, 100);
   };
   rd.readAsDataURL(file);
-}
-// File d'attente d'uploads — max 3 simultanés
-var _uploadQueue=[], _uploadActive=0, _uploadMax=3;
-function _queueUpload(compressed, imgData){
-  _uploadQueue.push({compressed:compressed, imgData:imgData});
-  _processUploadQueue();
-}
-function _processUploadQueue(){
-  while(_uploadActive<_uploadMax && _uploadQueue.length>0){
-    _uploadActive++;
-    var item=_uploadQueue.shift();
-    (function(it){
-      var context = _imgEdId === 'editor-conclusion' ? 'conclusion' : 'investigation';
-      _sbUploadPhoto(it.compressed, context, function(url) {
-        _uploadActive--;
-        if (url) {
-          it.imgData.src = url;
-          it.imgData.storageUrl = url;
-          // Remplacer base64 par URL dans les panels
-          ['fp-images-i-list','fp-images-c-list'].forEach(function(lid) {
-            var list = document.getElementById(lid);
-            if (!list) return;
-            list.querySelectorAll('.img-prev img').forEach(function(img) {
-              if (img.src === it.compressed) img.src = url;
-            });
-          });
-          // Aussi remplacer dans l'éditeur pour libérer la mémoire
-          var ed=document.getElementById(_imgEdId);
-          if(ed){
-            ed.querySelectorAll('img').forEach(function(img){
-              if(img.src===it.compressed){ img.src=url; img.dataset.storageUrl=url; }
-            });
-          }
-        }
-        _processUploadQueue();
-      });
-    })(item);
-  }
 }
 
 function compressImg(src, maxPx, quality, callback){
@@ -4342,7 +4326,7 @@ function _restoreDashboardFromDossiers(){
       _sharedImages=[]; _sharedImgPanelsDirty=true;
       var fpi=document.getElementById('fp-images-i-list');if(fpi)fpi.innerHTML='';
       var fpc=document.getElementById('fp-images-c-list');if(fpc)fpc.innerHTML='';
-      window._dossier=dd; window._tableauLoaded=false; window._tableauFromServer=false;
+      window._dossier=dd; window._tableauLoaded=false; window._tableauFromServer=false; document.querySelectorAll('.facade-img').forEach(function(img){ img.src=''; img.style.display='none'; img.removeAttribute('data-storage-url'); });
       if(!dd._uid || !_loadRapportSlot(dd._uid)){
         if(dd._sbId && _sb){ _restoreFromSupabase(dd, function(){ _syncAllCadres(); }); }
         else { _viderRapportPourNouvelleInterv(); addLogement(); }
@@ -4422,8 +4406,8 @@ function restoreSession(){
     }
   } catch(e){}
   
-  // 1b. Restaurer façade depuis localStorage
-  try { var fs=localStorage.getItem('fde_facade_ls'); if(fs) document.querySelectorAll('.facade-img').forEach(function(img){ img.src=fs; img.style.display='block'; }); } catch(e){}
+  // 1b. Façade — ne pas restaurer depuis localStorage (peut être d'un autre dossier)
+  // Elle sera chargée depuis Supabase ou le slot au moment du Remplir
   // 2. Charger les slots depuis IDB, puis le rapport actif, puis le dashboard
   // Charger les UIDs des slots depuis localStorage
   var _slotUids=[];
@@ -6572,7 +6556,7 @@ function _doDashSearch(query){
       _sharedImages=[]; _sharedImgPanelsDirty=true;
       var fpi2=document.getElementById('fp-images-i-list');if(fpi2)fpi2.innerHTML='';
       var fpc2=document.getElementById('fp-images-c-list');if(fpc2)fpc2.innerHTML='';
-      window._dossier=dd; window._tableauLoaded=false; window._tableauFromServer=false;
+      window._dossier=dd; window._tableauLoaded=false; window._tableauFromServer=false; document.querySelectorAll('.facade-img').forEach(function(img){ img.src=''; img.style.display='none'; img.removeAttribute('data-storage-url'); });
       if(!dd._uid || !_loadRapportSlot(dd._uid)){
         if(dd._sbId && _sb){ _restoreFromSupabase(dd, function(){ _syncAllCadres(); }); }
         else { _viderRapportPourNouvelleInterv(); addLogement(); }
@@ -6870,7 +6854,7 @@ function techCreateInterv(isUpdate){
       _sharedImages=[]; _sharedImgPanelsDirty=true;
       var fpi3=document.getElementById('fp-images-i-list');if(fpi3)fpi3.innerHTML='';
       var fpc3=document.getElementById('fp-images-c-list');if(fpc3)fpc3.innerHTML='';
-      window._dossier=dd; window._tableauLoaded=false; window._tableauFromServer=false;
+      window._dossier=dd; window._tableauLoaded=false; window._tableauFromServer=false; document.querySelectorAll('.facade-img').forEach(function(img){ img.src=''; img.style.display='none'; img.removeAttribute('data-storage-url'); });
       if(!dd._uid || !_loadRapportSlot(dd._uid)){
         if(dd._sbId && _sb){ _restoreFromSupabase(dd, function(){ _syncAllCadres(); }); }
         else { _viderRapportPourNouvelleInterv(); addLogement(); }
