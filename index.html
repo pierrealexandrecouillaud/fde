@@ -5433,7 +5433,7 @@ function _renderHTMLToPDF(doc, container, M, cw, WH, OR, BL, BK, GR,
       sfFn(11,'normal',BK);
       var _estLines2 = doc.splitTextToSize(fullText.trim(), cw);
       var _estH2 = _estLines2.length * 5.4;
-      if(getY()+_estH2>274 && getY()>30){ footerFn(); pageHeaderFn(); setY(18); }
+      if(getY()+_estH2>280 && getY()>30){ footerFn(); pageHeaderFn(); setY(18); }
       var curX=M;
       for(var si=0; si<parts.length; si+=3){
         var segText=parts[si]||'';
@@ -5461,7 +5461,7 @@ function _renderHTMLToPDF(doc, container, M, cw, WH, OR, BL, BK, GR,
       setY(getY()+3);
       for(var bi=0; bi<imgSegs.length; bi+=2){
         var biph=70, bipw=85;
-        if(getY()+biph+14>268){ footerFn(); pageHeaderFn(); setY(24); }
+        if(getY()+biph+14>280){ footerFn(); pageHeaderFn(); setY(24); }
         // Utiliser le numéro déjà stocké par la génération du texte (pas de double comptage)
         var pn1 = imgSegs[bi].num || String(investiPhotoNum++);
         var pn2 = imgSegs[bi+1] ? (imgSegs[bi+1].num||String(investiPhotoNum++)) : null;
@@ -5767,7 +5767,7 @@ function buildPDF(jsPDF, facadeJpeg, photosJpeg, investiJpegMap, investiImgMapBy
     if(allDmgPhotos.length){ y+=1; }
     for(var dpi=0;dpi<allDmgPhotos.length;dpi+=2){
       var iph=65, ipw=84;
-      if(y+iph+6>268){ footer(); doc.addPage(); pageHeader(); y=22; }
+      if(y+iph+6>280){ footer(); doc.addPage(); pageHeader(); y=22; }
       var ph1=allDmgPhotos[dpi], ph2=allDmgPhotos[dpi+1];
       // Utiliser directement le src stocké dans allDmgPhotos
       sf(13,'bold',OR);
@@ -6016,7 +6016,7 @@ function buildPDF(jsPDF, facadeJpeg, photosJpeg, investiJpegMap, investiImgMapBy
             if(l.trim().charAt(0)==='\u2013'||l.trim().charAt(0)==='\u2014'||l.trim().substring(0,2)==='- '||(l.trim().charAt(0)==='-'&&l.trim().charAt(1)===' ')) paraH+=4;
             paraH+=lineH;
           });
-          if(y+paraH>268 && y>30){
+          if(y+paraH>280 && y>30){
             footer();doc.addPage();pageHeader();y=22;sf(fSize,fStyle,col);
           }
           // Vérifier si le paragraphe a des couleurs multiples
@@ -6068,7 +6068,7 @@ function buildPDF(jsPDF, facadeJpeg, photosJpeg, investiJpegMap, investiImgMapBy
           var allImgObjs=lineImgs;
           for(var bi=0;bi<allImgObjs.length;bi+=2){
             var biph=70, bipw=85;
-            if(y+biph+6>268){footer();doc.addPage();pageHeader();y=22;}
+            if(y+biph+6>280){footer();doc.addPage();pageHeader();y=22;}
             var src1=allImgObjs[bi].src||null;
             var src2=allImgObjs[bi+1]?allImgObjs[bi+1].src||null:null;
             // Numéro déjà stocké par flushPhotoBucket (pas de double comptage)
