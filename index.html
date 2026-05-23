@@ -1644,22 +1644,33 @@ function _sbSaveContenus() {
   // 3. Sauvegarder le tableau de dégâts (logements-container HTML)
   var logCont = document.getElementById('logements-container');
   if (logCont && logCont.innerHTML && logCont.innerHTML.length > 50) {
-    // Synchroniser les valeurs des inputs/checkboxes dans les attributs HTML
-    logCont.querySelectorAll('input,select,textarea').forEach(function(inp){
-      if(inp.type==='checkbox'){
-        if(inp.checked) inp.setAttribute('checked','checked');
-        else inp.removeAttribute('checked');
-      } else if(inp.tagName==='SELECT'){
-        inp.querySelectorAll('option').forEach(function(o){ 
-          if(o.value===inp.value) o.setAttribute('selected','selected');
-          else o.removeAttribute('selected');
-        });
-      } else {
-        inp.setAttribute('value', inp.value||'');
-      }
-    });
-    var tableauHtml = _sanitizeInvestiHTML(logCont.innerHTML);
-    _sb.from('contenus').upsert({
+    // Vérifier qu'il y a du VRAI contenu (pas juste des champs vides)
+    var hasChecked = logCont.querySelector('input[type="checkbox"]:checked');
+    var hasPhotos = logCont.querySelector('.photo-thumb img');
+    var hasPieces = logCont.querySelector('.piece-row, [id$="-tbody"] tr');
+    if(hasChecked || hasPhotos || hasPieces){
+      // Synchroniser les valeurs des inputs/checkboxes dans les attributs HTML
+      logCont.querySelectorAll('input,select,textarea').forEach(function(inp){
+        if(inp.type==='checkbox'){
+          if(inp.checked) inp.setAttribute('checked','checked');
+          else inp.removeAttribute('checked');
+        } else if(inp.tagName==='SELECT'){
+          inp.querySelectorAll('option').forEach(function(o){ 
+            if(o.value===inp.value) o.setAttribute('selected','selected');
+            else o.removeAttribute('selected');
+          });
+        } else if(inp.tagName==='TEXTAREA'){
+          inp.textContent=inp.value||'';
+        } else {
+          inp.setAttribute('value', inp.value||'');
+        }
+      });
+      // Rendre les détails visibles dans le HTML sauvé
+      logCont.querySelectorAll('[id$="-detail"]').forEach(function(det){
+        if(det.querySelector('tr')) det.style.display='block';
+      });
+      var tableauHtml = _sanitizeInvestiHTML(logCont.innerHTML);
+      _sb.from('contenus').upsert({
       intervention_id: d._sbId,
       logement_id: '_tableau',
       investigation_html: tableauHtml,
@@ -1668,6 +1679,7 @@ function _sbSaveContenus() {
     .then(function(r) {
       if (r.error) console.warn('[FDE] Erreur save tableau:', r.error.message);
     });
+    } // fin if(hasChecked || hasPhotos || hasPieces)
   }
 }
 
