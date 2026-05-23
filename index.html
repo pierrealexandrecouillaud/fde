@@ -1669,7 +1669,7 @@ function _sbSaveContenus() {
       logCont.querySelectorAll('[id$="-detail"]').forEach(function(det){
         if(det.querySelector('tr')) det.style.display='block';
       });
-      var tableauHtml = _sanitizeInvestiHTML(logCont.innerHTML);
+      var tableauHtml = logCont.innerHTML;
       _sb.from('contenus').upsert({
       intervention_id: d._sbId,
       logement_id: '_tableau',
@@ -3958,7 +3958,7 @@ function doSave(){
         lc.querySelectorAll('[id$="-detail"]').forEach(function(det){ if(det.querySelector('tr')) det.style.display='block'; });
         var h=lc.innerHTML;
         if(!lc.querySelector('input[type="checkbox"]:checked')) return '';
-        return _sanitizeInvestiHTML(h);
+        return h; // PAS de sanitisation — Supabase gère les gros contenus
       })()
     };
     // localStorage — textes seulement (rapide)
@@ -4564,7 +4564,13 @@ function _doRestoreSession(data){
       if(data.investigationDirect){ var edi=document.getElementById('editor-investi'); if(edi) edi.innerHTML=data.investigationDirect; }
       if(data.tableauDirect && data.tableauDirect.length>50){
         var lc=document.getElementById('logements-container');
-        if(lc){ lc.innerHTML=data.tableauDirect; _fixInvestiImages(lc); updateLogsVisites(); }
+        if(lc){
+          lc.innerHTML=data.tableauDirect; _fixInvestiImages(lc);
+          // Mettre à jour le compteur de logements
+          var cards=lc.querySelectorAll('.logement-card');
+          if(cards.length>0) _lc=cards.length;
+          updateLogsVisites();
+        }
       }
     }, 800);
     // Restaurer les logements
@@ -6949,7 +6955,11 @@ function _restoreFromSupabase(d, onDone){
       // Tableau de dégâts complet — PRIORITÉ sur les logements individuels
       if(contenus.tableauHtml && contenus.tableauHtml.length>50){
         var logCont=document.getElementById('logements-container');
-        if(logCont){ logCont.innerHTML=contenus.tableauHtml; _fixInvestiImages(logCont); }
+        if(logCont){
+          logCont.innerHTML=contenus.tableauHtml; _fixInvestiImages(logCont);
+          var cards=logCont.querySelectorAll('.logement-card');
+          if(cards.length>0) _lc=cards.length;
+        }
         updateLogsVisites();
       } else {
         // Pas de tableau HTML → créer les logements depuis la table logements
