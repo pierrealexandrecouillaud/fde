@@ -3643,38 +3643,28 @@ function triggerImgUpload(listId,editorId){
 
 function loadImagesBatch(files, startIndex, batchSize, onComplete){
   if(startIndex >= files.length){ onComplete(); return; }
-  // Traitement séquentiel UNE image à la fois pour éviter OOM
   var file = files[startIndex];
   var rd = new FileReader();
   rd.onload = function(e){
-    // Compresser à 800px max avant de stocker
     compressImg(e.target.result, 1200, 0.85, function(compressed){
       var imgData = {src: compressed, name: file.name};
       _sharedImages.push(imgData);
       _sharedImgPanelsDirty=true;
       _ensureSharedImgPanels();
       updateProgressBar(startIndex + 1, files.length);
-      // ═══ SUPABASE — Upload en arrière-plan ═══
-      var context = _imgEdId === 'editor-conclusion' ? 'conclusion' : 'investigation';
-      _sbUploadPhoto(compressed, context, function(url) {
-        if (url) {
-          // Remplacer le base64 par l'URL dans _sharedImages
-          imgData.src = url;
-          imgData.storageUrl = url;
-          // Mettre à jour les panels (images déjà affichées)
-          ['fp-images-i-list','fp-images-c-list'].forEach(function(lid) {
-            var list = document.getElementById(lid);
-            if (!list) return;
-            list.querySelectorAll('.img-prev img').forEach(function(img) {
-              if (img.src === compressed) img.src = url;
-            });
-          });
-        }
-      });
-      // Libérer mémoire avant image suivante
+      // ═══ SUPABASE — Upload avec file d'attente (max 3 simultanés) ═══
+      _queueUpload(compressed, imgData);
+      // Sauvegarde intermédiaire toutes les 30 photos
+      if((startIndex+1) % 30 === 0){
+        try{saveCurrentInvesti();}catch(e2){}
+        try{_sbSaveContenus();}catch(e2){}
+        toast('💾 Sauvegarde intermédiaire ('+Math.round((startIndex+1)/files.length*100)+'%)');
+      }
+      // Libérer mémoire — délai plus long pour laisser le GC travailler
+      var delay = (startIndex+1) % 30 === 0 ? 1000 : 200;
       setTimeout(function(){
         loadImagesBatch(files, startIndex + 1, batchSize, onComplete);
-      }, 200);
+      }, delay);
     });
   };
   rd.onerror = function(){
@@ -3684,6 +3674,44 @@ function loadImagesBatch(files, startIndex, batchSize, onComplete){
     }, 100);
   };
   rd.readAsDataURL(file);
+}
+// File d'attente d'uploads — max 3 simultanés
+var _uploadQueue=[], _uploadActive=0, _uploadMax=3;
+function _queueUpload(compressed, imgData){
+  _uploadQueue.push({compressed:compressed, imgData:imgData});
+  _processUploadQueue();
+}
+function _processUploadQueue(){
+  while(_uploadActive<_uploadMax && _uploadQueue.length>0){
+    _uploadActive++;
+    var item=_uploadQueue.shift();
+    (function(it){
+      var context = _imgEdId === 'editor-conclusion' ? 'conclusion' : 'investigation';
+      _sbUploadPhoto(it.compressed, context, function(url) {
+        _uploadActive--;
+        if (url) {
+          it.imgData.src = url;
+          it.imgData.storageUrl = url;
+          // Remplacer base64 par URL dans les panels
+          ['fp-images-i-list','fp-images-c-list'].forEach(function(lid) {
+            var list = document.getElementById(lid);
+            if (!list) return;
+            list.querySelectorAll('.img-prev img').forEach(function(img) {
+              if (img.src === it.compressed) img.src = url;
+            });
+          });
+          // Aussi remplacer dans l'éditeur pour libérer la mémoire
+          var ed=document.getElementById(_imgEdId);
+          if(ed){
+            ed.querySelectorAll('img').forEach(function(img){
+              if(img.src===it.compressed){ img.src=url; img.dataset.storageUrl=url; }
+            });
+          }
+        }
+        _processUploadQueue();
+      });
+    })(item);
+  }
 }
 
 function compressImg(src, maxPx, quality, callback){
@@ -4764,14 +4792,27 @@ function _compressAllForPDF(allSrcs, callback){
     if(!seen[key]){ seen[key]=true; unique.push(src); }
   });
   if(unique.length===0){ callback(); return; }
-  toast('📷 Optimisation de '+unique.length+' photos pour le PDF...');
+  // Barre de progression
+  var pBar=document.createElement('div');
+  pBar.id='pdf-progress-bar';
+  pBar.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:white;border-radius:12px;padding:16px 24px;box-shadow:0 4px 20px rgba(0,0,0,0.2);z-index:99999;min-width:280px;text-align:center';
+  pBar.innerHTML='<div style="font-weight:700;margin-bottom:8px">📷 Optimisation des photos</div>'+
+    '<div style="background:#e5e7eb;border-radius:6px;height:10px;overflow:hidden;margin-bottom:6px">'+
+    '<div id="pdf-prog-fill" style="background:#F97316;height:100%;width:0%;transition:width 0.2s;border-radius:6px"></div></div>'+
+    '<div id="pdf-prog-text" style="color:#64748b;font-size:13px">0 / '+unique.length+'</div>';
+  document.body.appendChild(pBar);
   var idx=0;
   function _nextBatch(){
     if(idx>=unique.length){ 
       toast('✅ '+unique.length+' photos optimisées');
+      var pb=document.getElementById('pdf-progress-bar'); if(pb) pb.remove();
       callback(); 
       return; 
     }
+    // Mise à jour barre de progression
+    var pct=Math.round(idx/unique.length*100);
+    var fill=document.getElementById('pdf-prog-fill'); if(fill) fill.style.width=pct+'%';
+    var ptxt=document.getElementById('pdf-prog-text'); if(ptxt) ptxt.textContent=idx+' / '+unique.length+' photos';
     // Traiter 1 seule image à la fois (évite les crash mémoire avec 150+ photos)
     var src=unique[idx];
     var img=new Image();
