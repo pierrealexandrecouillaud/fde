@@ -2134,6 +2134,33 @@ function goTo(pageId){
     // Galerie : reconstruire UNIQUEMENT si vide (évite doublons)
     if(!_sharedImages.length) _recoverSharedImages();
   }
+  if(pageId==='dommage'){
+    // ═══ RESTAURER le type de squelette si pas coché ═══
+    var _skelBtns=document.querySelectorAll('.skel-btn');
+    var _hasActive=false;
+    _skelBtns.forEach(function(b){ if(b.classList.contains('active')) _hasActive=true; });
+    if(!_hasActive){
+      if(!_activeSkelType){
+        var _dd=window._dossier;
+        if(_dd && _dd._sbId && _sb){
+          _sbLoadContenus(_dd._sbId, function(c){
+            if(c && c.skelType) _activeSkelType=c.skelType;
+            if(_activeSkelType){
+              document.querySelectorAll('.skel-btn').forEach(function(b){
+                var oc=b.getAttribute('onclick')||'';
+                if(oc.indexOf("'"+_activeSkelType+"'")>=0) b.classList.add('active');
+              });
+            }
+          });
+        }
+      } else {
+        _skelBtns.forEach(function(b){
+          var oc=b.getAttribute('onclick')||'';
+          if(oc.indexOf("'"+_activeSkelType+"'")>=0) b.classList.add('active');
+        });
+      }
+    }
+  }
   if(pageId==='conclusion'){
     if(!_sharedImages.length) _recoverSharedImages();
   }
