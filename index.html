@@ -3042,7 +3042,7 @@ function _loadInvestiFromSupabase(curD){
       if(bestContent.length>30){
         // Écrire UNIQUEMENT si l'éditeur est vide (comme la conclusion)
         // Le slot a déjà restauré le bon contenu — ne pas l'écraser
-        if(!edI.innerHTML || edI.innerHTML.length<50 || edI.innerHTML.indexOf('lectionnez un logement')>=0){
+        if(!edI.innerHTML || edI.innerHTML.length<50 || edI.innerHTML.indexOf('lectionnez un logement')>=0 || edI.innerHTML.indexOf('Cochez')>=0 || edI.innerHTML.indexOf('Chargement')>=0){
           console.log('[FDE] ✅ Investigation → éditeur: '+bestContent.length+' chars');
           edI.innerHTML=bestContent;
           _fixInvestiImages(edI);
