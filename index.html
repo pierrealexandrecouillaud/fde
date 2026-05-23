@@ -2143,8 +2143,8 @@ function goTo(pageId){
             if(zone){ var ic=zone.querySelector('.fz-icon'); var lb=zone.querySelector('.fz-label'); if(ic)ic.style.display='none'; if(lb)lb.style.display='none'; }
           });
         }
-        // Tableau de dégâts — TOUJOURS mettre à jour depuis Supabase
-        if(c && c.tableauHtml && c.tableauHtml.length>50){
+        // Tableau de dégâts — charger depuis Supabase uniquement au PREMIER chargement
+        if(c && c.tableauHtml && c.tableauHtml.length>50 && !window._tableauLoaded){
           var logCont=document.getElementById('logements-container');
           if(logCont){
             logCont.innerHTML=c.tableauHtml;
@@ -2152,6 +2152,7 @@ function goTo(pageId){
             var cards=logCont.querySelectorAll('.logement-card');
             if(cards.length>0) _lc=cards.length;
             updateLogsVisites();
+            window._tableauLoaded=true;
             // Empêcher la sauvegarde de réécrire Supabase pendant 30s
             window._tableauFromServer=true;
             setTimeout(function(){ window._tableauFromServer=false; }, 30000);
@@ -4312,7 +4313,7 @@ function _restoreDashboardFromDossiers(){
       _sharedImages=[]; _sharedImgPanelsDirty=true;
       var fpi=document.getElementById('fp-images-i-list');if(fpi)fpi.innerHTML='';
       var fpc=document.getElementById('fp-images-c-list');if(fpc)fpc.innerHTML='';
-      window._dossier=dd;
+      window._dossier=dd; window._tableauLoaded=false; window._tableauFromServer=false;
       if(!dd._uid || !_loadRapportSlot(dd._uid)){
         if(dd._sbId && _sb){ _restoreFromSupabase(dd, function(){ _syncAllCadres(); }); }
         else { _viderRapportPourNouvelleInterv(); addLogement(); }
@@ -6523,7 +6524,7 @@ function _doDashSearch(query){
       _sharedImages=[]; _sharedImgPanelsDirty=true;
       var fpi2=document.getElementById('fp-images-i-list');if(fpi2)fpi2.innerHTML='';
       var fpc2=document.getElementById('fp-images-c-list');if(fpc2)fpc2.innerHTML='';
-      window._dossier=dd;
+      window._dossier=dd; window._tableauLoaded=false; window._tableauFromServer=false;
       if(!dd._uid || !_loadRapportSlot(dd._uid)){
         if(dd._sbId && _sb){ _restoreFromSupabase(dd, function(){ _syncAllCadres(); }); }
         else { _viderRapportPourNouvelleInterv(); addLogement(); }
@@ -6821,7 +6822,7 @@ function techCreateInterv(isUpdate){
       _sharedImages=[]; _sharedImgPanelsDirty=true;
       var fpi3=document.getElementById('fp-images-i-list');if(fpi3)fpi3.innerHTML='';
       var fpc3=document.getElementById('fp-images-c-list');if(fpc3)fpc3.innerHTML='';
-      window._dossier=dd;
+      window._dossier=dd; window._tableauLoaded=false; window._tableauFromServer=false;
       if(!dd._uid || !_loadRapportSlot(dd._uid)){
         if(dd._sbId && _sb){ _restoreFromSupabase(dd, function(){ _syncAllCadres(); }); }
         else { _viderRapportPourNouvelleInterv(); addLogement(); }
