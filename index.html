@@ -6153,23 +6153,53 @@ function buildPDF(jsPDF, facadeJpeg, photosJpeg, investiJpegMap, investiImgMapBy
     var _clientName = (window._dossier&&window._dossier.client||'').trim();
     var nomFichier = _clientName ? ('Rapport d\'intervention - ' + _clientName) : 'Rapport d\'intervention';
     nomFichier = nomFichier.replace(/[\/\\:*?"<>|]/g,'') + '.pdf';
-    // Modal avec bouton pour ouvrir le PDF
-    try{
-      var pdfBlob = doc.output('blob');
-      var blobUrl = URL.createObjectURL(pdfBlob);
-      var modal=document.createElement('div');
-      modal.id='pdf-modal';
-      modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center';
-      modal.innerHTML='<div style="background:white;border-radius:16px;padding:32px;text-align:center;max-width:320px">'+
-        '<div style="font-size:48px;margin-bottom:16px">✅</div>'+
-        '<div style="font-size:18px;font-weight:700;margin-bottom:8px">PDF généré !</div>'+
-        '<div style="color:#64748b;font-size:14px;margin-bottom:20px">'+nomFichier+'</div>'+
-        '<a href="'+blobUrl+'" target="_blank" style="display:block;padding:14px;background:#F97316;color:white;border-radius:10px;font-weight:700;text-decoration:none;margin-bottom:10px">Ouvrir le PDF</a>'+
-        '<button onclick="this.closest(\'#pdf-modal\').remove()" style="padding:10px;background:none;border:1px solid #e5e7eb;border-radius:8px;width:100%;color:#64748b;cursor:pointer">Fermer</button></div>';
-      document.body.appendChild(modal);
-    }catch(e2){
-      // Fallback
-      doc.save(nomFichier);
+    var isIpad = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    
+    if(!isIpad){
+      // Mac/Desktop — blob URL direct
+      try{
+        var pdfBlob = doc.output('blob');
+        var blobUrl = URL.createObjectURL(pdfBlob);
+        var modal=document.createElement('div');
+        modal.id='pdf-modal';
+        modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center';
+        modal.innerHTML='<div style="background:white;border-radius:16px;padding:32px;text-align:center;max-width:320px">'+
+          '<div style="font-size:48px;margin-bottom:16px">✅</div>'+
+          '<div style="font-size:18px;font-weight:700;margin-bottom:8px">PDF généré !</div>'+
+          '<div style="color:#64748b;font-size:14px;margin-bottom:20px">'+nomFichier+'</div>'+
+          '<a href="'+blobUrl+'" target="_blank" style="display:block;padding:14px;background:#F97316;color:white;border-radius:10px;font-weight:700;text-decoration:none;margin-bottom:10px">Ouvrir le PDF</a>'+
+          '<button onclick="this.closest(\'#pdf-modal\').remove()" style="padding:10px;background:none;border:1px solid #e5e7eb;border-radius:8px;width:100%;color:#64748b;cursor:pointer">Fermer</button></div>';
+        document.body.appendChild(modal);
+      }catch(e2){ doc.save(nomFichier); }
+    } else {
+      // iPad — upload vers Supabase Storage puis lien réel
+      toast('📤 Envoi du PDF vers le serveur...');
+      try{
+        var pdfBlob2 = doc.output('blob');
+        var _pdfRef2 = (window._dossier&&window._dossier.ref || '').replace(/[^a-zA-Z0-9_-]/g, '');
+        var _pdfClient2 = (window._dossier&&window._dossier.client || '').replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 30);
+        var _pdfFolder2 = (_pdfRef2 || 'noref') + '_' + (_pdfClient2 || 'noclient');
+        var pdfPath2 = _pdfFolder2 + '/rapport_' + Date.now() + '.pdf';
+        _sb.storage.from('photos').upload(pdfPath2, pdfBlob2, {
+          contentType: 'application/pdf', upsert: true
+        }).then(function(r2) {
+          if (r2.error) { toast('❌ Erreur upload PDF: '+r2.error.message); return; }
+          var urlR2 = _sb.storage.from('photos').getPublicUrl(pdfPath2);
+          var pdfUrl = urlR2.data ? urlR2.data.publicUrl : '';
+          if(pdfUrl){
+            var modal2=document.createElement('div');
+            modal2.id='pdf-modal';
+            modal2.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center';
+            modal2.innerHTML='<div style="background:white;border-radius:16px;padding:32px;text-align:center;max-width:320px">'+
+              '<div style="font-size:48px;margin-bottom:16px">✅</div>'+
+              '<div style="font-size:18px;font-weight:700;margin-bottom:8px">PDF prêt !</div>'+
+              '<div style="color:#64748b;font-size:14px;margin-bottom:20px">'+nomFichier+'</div>'+
+              '<a href="'+pdfUrl+'" target="_blank" style="display:block;padding:14px;background:#F97316;color:white;border-radius:10px;font-weight:700;text-decoration:none;margin-bottom:10px">Ouvrir le PDF</a>'+
+              '<button onclick="this.closest(\'#pdf-modal\').remove()" style="padding:10px;background:none;border:1px solid #e5e7eb;border-radius:8px;width:100%;color:#64748b;cursor:pointer">Fermer</button></div>';
+            document.body.appendChild(modal2);
+          } else { toast('❌ URL PDF introuvable'); }
+        });
+      }catch(e3){ toast('❌ Erreur: '+e3.message); }
     }
     toast('\u2705 PDF prêt');
     // ═══ SUPABASE — Sauvegarder le PDF dans Storage ═══
