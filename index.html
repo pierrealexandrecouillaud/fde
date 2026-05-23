@@ -3946,7 +3946,20 @@ function doSave(){
       phc:_phc,
       lc:_lc, pc:_pc,
       dossier:window._dossier||null,
-      facadeSrc:(function(){ var fi=null; document.querySelectorAll('.facade-img').forEach(function(img){ if(img.dataset.storageUrl) fi=img.dataset.storageUrl; else if(img.src&&img.src.indexOf('http')===0) fi=img.src; }); return fi||''; })()
+      facadeSrc:(function(){ var fi=null; document.querySelectorAll('.facade-img').forEach(function(img){ if(img.dataset.storageUrl) fi=img.dataset.storageUrl; else if(img.src&&img.src.indexOf('http')===0) fi=img.src; }); return fi||''; })(),
+      tableauDirect:(function(){
+        var lc=document.getElementById('logements-container'); if(!lc) return '';
+        // Sync input values to HTML attributes
+        lc.querySelectorAll('input,select,textarea').forEach(function(inp){
+          if(inp.type==='checkbox'){ if(inp.checked) inp.setAttribute('checked','checked'); else inp.removeAttribute('checked'); }
+          else if(inp.tagName==='TEXTAREA') inp.textContent=inp.value||'';
+          else inp.setAttribute('value',inp.value||'');
+        });
+        lc.querySelectorAll('[id$="-detail"]').forEach(function(det){ if(det.querySelector('tr')) det.style.display='block'; });
+        var h=lc.innerHTML;
+        if(!lc.querySelector('input[type="checkbox"]:checked')) return '';
+        return _sanitizeInvestiHTML(h);
+      })()
     };
     // localStorage — textes seulement (rapide)
     try{
@@ -3957,6 +3970,7 @@ function doSave(){
         conclusion:(saveData.conclusion||'').replace(/<img[^>]*>/g,''),
         investigationDirect:(saveData.investigationDirect||'').replace(/<img[^>]*>/g,''),
         investigationDossierUid:saveData.investigationDossierUid||'',
+        tableauDirect:(saveData.tableauDirect||'').replace(/<img[^>]*>/g,''),
         logements:saveData.logements,
         phc:saveData.phc, lc:saveData.lc, pc:saveData.pc,
         investiContents:{}
@@ -4548,6 +4562,10 @@ function _doRestoreSession(data){
     setTimeout(function(){
       if(data.conclusion){ var ed=document.getElementById('editor-conclusion'); if(ed) ed.innerHTML=data.conclusion; }
       if(data.investigationDirect){ var edi=document.getElementById('editor-investi'); if(edi) edi.innerHTML=data.investigationDirect; }
+      if(data.tableauDirect && data.tableauDirect.length>50){
+        var lc=document.getElementById('logements-container');
+        if(lc){ lc.innerHTML=data.tableauDirect; _fixInvestiImages(lc); updateLogsVisites(); }
+      }
     }, 800);
     // Restaurer les logements
     if(data.logements && data.logements.length>0){
