@@ -5828,8 +5828,9 @@ function buildPDF(jsPDF, facadeJpeg, photosJpeg, investiJpegMap, investiImgMapBy
           if(node.nodeType===3){
             if(node.textContent) segs.push({type:'text',val:node.textContent,color:inheritCol||BK2});
           } else if(node.nodeName==='IMG'){
-            if(node.src && node.src.indexOf('data:')===0)
-              segs.push({type:'img',src:node.src,num:node.getAttribute('data-photo-num')||null});
+            var _imgSrc=node.dataset.storageUrl||node.src||'';
+            if(_imgSrc && (_imgSrc.indexOf('data:')===0 || _imgSrc.indexOf('http')===0))
+              segs.push({type:'img',src:_imgSrc,num:node.getAttribute('data-photo-num')||null});
           } else if(node.nodeName==='BR'){
             segs.push({type:'text',val:'\n',color:inheritCol||BK2});
           } else {
@@ -5855,8 +5856,9 @@ function buildPDF(jsPDF, facadeJpeg, photosJpeg, investiJpegMap, investiImgMapBy
           var imgs=segs.filter(function(s){ return s.type==='img'; });
           richParas.push({segs:segs,imgs:imgs,origNode:node});
         } else if(node.nodeName==='IMG'){
-          if(node.src && node.src.indexOf('data:')===0){
-            richParas.push({segs:[{type:'img',src:node.src,num:node.getAttribute('data-photo-num')||null}],imgs:[{src:node.src,num:node.getAttribute('data-photo-num')||null}],origNode:null});
+          var _imgSrc2=node.dataset&&node.dataset.storageUrl||node.src||'';
+          if(_imgSrc2 && (_imgSrc2.indexOf('data:')===0 || _imgSrc2.indexOf('http')===0)){
+            richParas.push({segs:[{type:'img',src:_imgSrc2,num:node.getAttribute('data-photo-num')||null}],imgs:[{src:_imgSrc2,num:node.getAttribute('data-photo-num')||null}],origNode:null});
           }
         }
       });
