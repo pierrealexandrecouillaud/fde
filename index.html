@@ -5019,8 +5019,14 @@ function _sbGeneratePDF(){
 var _pdfGenerating=false;
 var _pdfGenTimer=null;
 function downloadPDF(){
-  try { console.log('[FDE] downloadPDF appelée — PDF client'); } catch(e){}
-  genererPDF();
+  var isIpad = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if(isIpad){
+    console.log('[FDE] PDF serveur (iPad)');
+    _sbGeneratePDF();
+  } else {
+    console.log('[FDE] PDF client (Mac)');
+    genererPDF();
+  }
 }
 
 // Convertit n'importe quelle image en dataURL JPEG via canvas
