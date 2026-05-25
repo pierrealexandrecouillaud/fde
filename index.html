@@ -1686,7 +1686,11 @@ function _sbSaveGalleryDebounced(){
 }
 function _sbSaveGallery(){
   if(!_sb || !window._dossier || !window._dossier._sbId) return;
-  var galleryData = _sharedImages.map(function(img){ return {src:img.src||'', storageUrl:img.storageUrl||'', name:img.name||''}; });
+  // Ne sauver que les photos avec des URLs Supabase (pas data:)
+  var galleryData = _sharedImages.filter(function(img){
+    return img.src && img.src.indexOf('http')===0;
+  }).map(function(img){ return {src:img.src||'', storageUrl:img.storageUrl||'', name:img.name||''}; });
+  if(!galleryData.length) return;
   _sb.from('contenus').upsert({
     intervention_id: window._dossier._sbId,
     logement_id: '_gallery',
@@ -2096,6 +2100,8 @@ function _ensureSharedImgPanels(){
 function _recoverSharedImages(){
   // Ne pas récupérer si on est en train de changer de dossier
   if(window._switchingDossier) return;
+  // Ne pas écraser la galerie chargée depuis Supabase
+  if(_galleryLoadedFromServer) return;
   var found={};
   _sharedImages.forEach(function(img){ if(img.src) found[img.src]=true; if(img.storageUrl) found[img.storageUrl]=true; });
   
@@ -3166,6 +3172,7 @@ function _loadInvestiFromSupabase(curD){
             });
             if(_sharedImages.length){
               _sharedImgPanelsDirty=true;
+              _galleryLoadedFromServer=true;
               console.log('[FDE] Galerie restaurée depuis Supabase:', _sharedImages.length, 'photos');
             }
           }
@@ -3631,8 +3638,10 @@ function insertPhrase(editorId,text){
    Chargement par lots de 10 pour éviter crash Safari
 ════════════════════════════════════════ */
 var _sharedImages=[];
+var _galleryLoadedFromServer=false;
 function _clearGallery(){
   _sharedImages=[];
+  _galleryLoadedFromServer=false;
   _sharedImgPanelsDirty=false;
   if(window._loadBatchTimer) clearTimeout(window._loadBatchTimer);
   var listI=document.getElementById('fp-images-i-list');
