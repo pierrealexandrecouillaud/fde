@@ -3163,8 +3163,9 @@ function _loadInvestiFromSupabase(curD){
       try{
         var galleryArr=JSON.parse(contenus.galleryJson);
         if(Array.isArray(galleryArr) && galleryArr.length>0){
-          // Ne restaurer que si la galerie est vide (pas déjà chargée)
-          if(!_sharedImages.length){
+          // Toujours remplacer par les données Supabase si elles ont plus de photos
+          if(galleryArr.length >= _sharedImages.length){
+            _sharedImages=[];
             galleryArr.forEach(function(img){
               if(img.src && img.src.indexOf('http')===0){
                 _sharedImages.push({src:img.src, storageUrl:img.storageUrl||img.src, name:img.name||''});
@@ -3173,6 +3174,7 @@ function _loadInvestiFromSupabase(curD){
             if(_sharedImages.length){
               _sharedImgPanelsDirty=true;
               _galleryLoadedFromServer=true;
+              _ensureSharedImgPanels();
               console.log('[FDE] Galerie restaurée depuis Supabase:', _sharedImages.length, 'photos');
             }
           }
