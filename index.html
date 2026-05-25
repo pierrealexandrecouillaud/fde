@@ -6157,7 +6157,7 @@ function buildPDF(jsPDF, facadeJpeg, photosJpeg, investiJpegMap, investiImgMapBy
       doc.text('Page '+_pg+'/'+doc.internal.getNumberOfPages(),W-5,291.5,{align:'right'});
     }
     var _clientName = (window._dossier&&window._dossier.client||'').trim();
-    var nomFichier = _clientName ? ('Rapport d\u2019intervention ' + _clientName) : 'Rapport d\u2019intervention';
+    var nomFichier = _clientName ? ("Rapport d'intervention " + _clientName) : "Rapport d'intervention";
     nomFichier = nomFichier.replace(/[\/\\:*?"<>|]/g,'') + '.pdf';
     var isIpad = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     
