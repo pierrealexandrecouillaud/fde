@@ -3784,7 +3784,7 @@ function addImgToPanel(listId, imgData){
   btnsDiv.appendChild(btnInsert); btnsDiv.appendChild(btnDel);
   infoDiv.appendChild(nameDiv); infoDiv.appendChild(btnsDiv);
   item.appendChild(prevDiv); item.appendChild(infoDiv);
-  list.insertBefore(item, list.firstChild);
+  list.appendChild(item);
 }
 
 function removeSharedImg(src, btn){
