@@ -3164,10 +3164,9 @@ function _loadInvestiFromSupabase(curD){
         _currentLogId = Object.keys(contenus.investiContents)[0] || _currentLogId;
       }
       _fixInvestiImages(edI);
-        // Mettre à jour le label
-        var nm=document.getElementById('investi-log-name');
-        if(nm){ nm.textContent='Investigation chargée'; nm.style.color='var(--orange)'; }
-      }
+      // Mettre à jour le label
+      var nm=document.getElementById('investi-log-name');
+      if(nm){ nm.textContent='Investigation chargée'; nm.style.color='var(--orange)'; }
     }
     // ═══ FAÇADE — restaurer depuis Supabase ═══
     if(contenus && contenus.facadeUrl && contenus.facadeUrl.indexOf('http')===0){
