@@ -4939,9 +4939,9 @@ function _sbGeneratePDF(){
     toast('⚠️ Sauvegardez d\'abord le dossier dans Supabase');
     return;
   }
-  // NE PAS sauvegarder ici — on lit seulement les données pour le serveur
-  // Les sauvegardes (doSave, _sbSaveContenus, etc.) peuvent corrompre l'état de l'app
-  try{saveCurrentInvesti();}catch(e){} // juste copier l'éditeur courant dans _investiContents
+  // Sauvegarder les données actuelles avant de générer le PDF
+  try{saveCurrentInvesti();}catch(e){}
+  try{_sbSaveContenus();}catch(e){}
 
   var interventionId=window._dossier._sbId;
   var d=window._dossier||{};
