@@ -4994,7 +4994,7 @@ function _sbGeneratePDF(){
           '<div style="font-size:40px;margin-bottom:12px">✅</div>'+
           '<div style="font-size:16px;font-weight:700;margin-bottom:4px">PDF prêt !</div>'+
           '<div style="color:#64748b;font-size:13px;margin-bottom:20px">'+data.size_mb+' MB</div>'+
-          '<a href="'+data.pdf_url+'" target="_blank" style="display:block;background:#F97316;color:white;padding:14px;border-radius:10px;font-weight:700;text-decoration:none;font-size:15px">Ouvrir le PDF</a>'+
+          '<a href="'+data.pdf_url+'" target="_blank" download="'+(data.filename||'rapport.pdf')+'" style="display:block;background:#F97316;color:white;padding:14px;border-radius:10px;font-weight:700;text-decoration:none;font-size:15px">Ouvrir le PDF</a>'+
           '</div>';
         modal.onclick=function(e){ if(e.target===modal) modal.remove(); };
         document.body.appendChild(modal);
@@ -6173,7 +6173,7 @@ function buildPDF(jsPDF, facadeJpeg, photosJpeg, investiJpegMap, investiImgMapBy
           '<div style="font-size:48px;margin-bottom:16px">✅</div>'+
           '<div style="font-size:18px;font-weight:700;margin-bottom:8px">PDF généré !</div>'+
           '<div style="color:#64748b;font-size:14px;margin-bottom:20px">'+nomFichier+'</div>'+
-          '<a href="'+blobUrl+'" target="_blank" style="display:block;padding:14px;background:#F97316;color:white;border-radius:10px;font-weight:700;text-decoration:none;margin-bottom:10px">Ouvrir le PDF</a>'+
+          '<a href="'+blobUrl+'" target="_blank" download="'+nomFichier+'" style="display:block;padding:14px;background:#F97316;color:white;border-radius:10px;font-weight:700;text-decoration:none;margin-bottom:10px">Ouvrir le PDF</a>'+
           '<button onclick="this.closest(\'#pdf-modal\').remove()" style="padding:10px;background:none;border:1px solid #e5e7eb;border-radius:8px;width:100%;color:#64748b;cursor:pointer">Fermer</button></div>';
         document.body.appendChild(modal);
       }catch(e2){ doc.save(nomFichier); }
