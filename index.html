@@ -3141,24 +3141,29 @@ function _loadInvestiFromSupabase(curD){
     }
     if(contenus && contenus.skelType) _activeSkelType=contenus.skelType;
     
-    // Investigation → écrire DIRECTEMENT dans l'éditeur
+    // Investigation → restaurer CHAQUE logement séparément
     if(contenus && contenus.investiContents && edI){
-      var bestContent='';
       Object.keys(contenus.investiContents).forEach(function(logId){
         var h=contenus.investiContents[logId]||'';
-        _investiContents[logId]=h;
-        if(h.length>bestContent.length) bestContent=h;
+        // Ne pas écraser le contenu local s'il est plus long (= plus récent)
+        if(!_investiContents[logId] || _investiContents[logId].length < h.length){
+          _investiContents[logId]=h;
+        }
       });
-      if(bestContent.length>30){
-        // Écrire UNIQUEMENT si l'éditeur est vide (comme la conclusion)
-        // Le slot a déjà restauré le bon contenu — ne pas l'écraser
+      // Charger UNIQUEMENT le contenu du logement ACTUEL dans l'éditeur
+      var activeLog = _currentLogId;
+      if(activeLog && _investiContents[activeLog] && _investiContents[activeLog].length>30){
         if(!edI.innerHTML || edI.innerHTML.length<50 || edI.innerHTML.indexOf('lectionnez un logement')>=0 || edI.innerHTML.indexOf('Cochez')>=0 || edI.innerHTML.indexOf('Chargement')>=0){
-          console.log('[FDE] ✅ Investigation → éditeur: '+bestContent.length+' chars');
-          edI.innerHTML=bestContent;
+          console.log('[FDE] ✅ Investigation '+activeLog+' → éditeur: '+_investiContents[activeLog].length+' chars');
+          edI.innerHTML=_investiContents[activeLog];
           _fixInvestiImages(edI);
         }
+      }
+      if(!activeLog){
+        // Si pas de logement actif, prendre le premier
         _currentLogId = Object.keys(contenus.investiContents)[0] || _currentLogId;
-        _fixInvestiImages(edI);
+      }
+      _fixInvestiImages(edI);
         // Mettre à jour le label
         var nm=document.getElementById('investi-log-name');
         if(nm){ nm.textContent='Investigation chargée'; nm.style.color='var(--orange)'; }
