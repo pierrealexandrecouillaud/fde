@@ -1678,6 +1678,26 @@ function _sbSaveContenus() {
   } // fin else _tableauFromServer
 }
 
+// Sauvegarder la galerie dans Supabase
+var _gallerySaveTimer=null;
+function _sbSaveGalleryDebounced(){
+  if(_gallerySaveTimer) clearTimeout(_gallerySaveTimer);
+  _gallerySaveTimer=setTimeout(_sbSaveGallery, 3000);
+}
+function _sbSaveGallery(){
+  if(!_sb || !window._dossier || !window._dossier._sbId) return;
+  var galleryData = _sharedImages.map(function(img){ return {src:img.src||'', storageUrl:img.storageUrl||'', name:img.name||''}; });
+  _sb.from('contenus').upsert({
+    intervention_id: window._dossier._sbId,
+    logement_id: '_gallery',
+    investigation_html: JSON.stringify(galleryData)
+  }, { onConflict: 'intervention_id,logement_id' })
+  .then(function(r){
+    if(r.error) console.warn('[FDE] Erreur save galerie:', r.error.message);
+    else console.log('[FDE] Galerie sauvegardée:', galleryData.length, 'photos');
+  });
+}
+
 // Charger les contenus depuis Supabase pour une intervention
 function _sbLoadContenus(sbInterventionId, callback) {
   if (!_sb || !sbInterventionId) { callback({}); return; }
@@ -1688,7 +1708,7 @@ function _sbLoadContenus(sbInterventionId, callback) {
         callback({});
         return;
       }
-      var contenus = { investiContents: {}, conclusion: '', skelType: '', facadeUrl: '', tableauHtml: '' };
+      var contenus = { investiContents: {}, conclusion: '', skelType: '', facadeUrl: '', tableauHtml: '', galleryJson: '' };
       (result.data || []).forEach(function(row) {
         if (row.logement_id === '_conclusion') {
           contenus.conclusion = row.conclusion_html || '';
@@ -1698,6 +1718,8 @@ function _sbLoadContenus(sbInterventionId, callback) {
         } else if (row.logement_id === '_tableau') {
           contenus.tableauHtml = row.investigation_html || '';
           if(row.skel_type) contenus.skelType = row.skel_type;
+        } else if (row.logement_id === '_gallery') {
+          contenus.galleryJson = row.investigation_html || '';
         } else {
           contenus.investiContents[row.logement_id] = row.investigation_html || '';
           if (row.skel_type) contenus.skelType = row.skel_type;
@@ -3130,6 +3152,26 @@ function _loadInvestiFromSupabase(curD){
       });
       console.log('[FDE] Façade restaurée depuis Supabase');
     }
+    // ═══ GALERIE — restaurer depuis Supabase ═══
+    if(contenus && contenus.galleryJson && contenus.galleryJson.length>5){
+      try{
+        var galleryArr=JSON.parse(contenus.galleryJson);
+        if(Array.isArray(galleryArr) && galleryArr.length>0){
+          // Ne restaurer que si la galerie est vide (pas déjà chargée)
+          if(!_sharedImages.length){
+            galleryArr.forEach(function(img){
+              if(img.src && img.src.indexOf('http')===0){
+                _sharedImages.push({src:img.src, storageUrl:img.storageUrl||img.src, name:img.name||''});
+              }
+            });
+            if(_sharedImages.length){
+              _sharedImgPanelsDirty=true;
+              console.log('[FDE] Galerie restaurée depuis Supabase:', _sharedImages.length, 'photos');
+            }
+          }
+        }
+      }catch(e){ console.warn('[FDE] Erreur parse galerie:', e); }
+    }
   });
 }
 
@@ -3665,6 +3707,8 @@ function triggerImgUpload(listId,editorId){
           try{saveCurrentInvesti();}catch(e){}
           try{_sbSaveContenus();}catch(e){}
         }, 2000);
+        // Sauvegarder la galerie (attendre que les uploads Supabase finissent)
+        setTimeout(_sbSaveGallery, 10000);
       });
     });
   };
@@ -3689,6 +3733,7 @@ function loadImagesBatch(files, startIndex, batchSize, onComplete){
         if (url) {
           imgData.src = url;
           imgData.storageUrl = url;
+          _sbSaveGalleryDebounced();
           ['fp-images-i-list','fp-images-c-list'].forEach(function(lid) {
             var list = document.getElementById(lid);
             if (!list) return;
@@ -3796,6 +3841,7 @@ function removeSharedImg(src, btn){
       if(img && img.src===src) item.remove();
     });
   });
+  _sbSaveGalleryDebounced();
 }
 
 function insertImgAtCursor(src){
