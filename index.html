@@ -2072,14 +2072,20 @@ function _ensureSharedImgPanels(){
 }
 // Reconstruire _sharedImages depuis les images dans _investiContents et conclusion
 function _recoverSharedImages(){
+  // Ne pas récupérer si on est en train de changer de dossier
+  if(window._switchingDossier) return;
   var found={};
   _sharedImages.forEach(function(img){ if(img.src) found[img.src]=true; if(img.storageUrl) found[img.storageUrl]=true; });
   
-  // Scanner UNIQUEMENT les éditeurs DOM (pas _investiContents qui peut appartenir à un autre dossier)
+  // Scanner UNIQUEMENT les éditeurs DOM qui appartiennent au dossier COURANT
+  var currentId=window._dossier&&window._dossier._sbId;
+  if(!currentId) return; // pas de dossier chargé → pas de récupération
+  
   ['editor-investi','editor-conclusion'].forEach(function(edId){
     var edEl=document.getElementById(edId);
     if(!edEl) return;
     var html=edEl.innerHTML||'';
+    if(!html || html.length<50) return; // éditeur vide ou en cours de chargement
     var re=/(data-full-src|data-storage-url|src)\s*=\s*["'](https?:\/\/[^"']*supabase[^"']*(?:\.jpg|\.jpeg|\.png)[^"']*)["']/gi;
     var m; while((m=re.exec(html))!==null){
       if(m[2]&&!found[m[2]]&&m[2].indexOf('support_')<0&&m[2].indexOf('facade_')<0){
@@ -2088,8 +2094,6 @@ function _recoverSharedImages(){
     }
   });
   if(_sharedImages.length) _sharedImgPanelsDirty=true;
-  // NE PAS lister Storage — le dossier Storage est par client, pas par intervention
-  // La galerie ne contient que les photos des éditeurs actuels + ajout manuel
   if(_sharedImages.length>0) _ensureSharedImgPanels();
 }
 function showPanel(id){
@@ -3585,6 +3589,15 @@ function insertPhrase(editorId,text){
    Chargement par lots de 10 pour éviter crash Safari
 ════════════════════════════════════════ */
 var _sharedImages=[];
+function _clearGallery(){
+  _sharedImages=[];
+  _sharedImgPanelsDirty=false;
+  if(window._loadBatchTimer) clearTimeout(window._loadBatchTimer);
+  var listI=document.getElementById('fp-images-i-list');
+  var listC=document.getElementById('fp-images-c-list');
+  if(listI) listI.innerHTML='';
+  if(listC) listC.innerHTML='';
+}
 
 /* ═══ Mini EXIF parser — extrait la date de prise de vue ═══ */
 function getExifDate(file, callback){
@@ -4324,7 +4337,7 @@ function _restoreDashboardFromDossiers(){
       // ═══ SAUVER LE DOSSIER ACTUEL avant de changer ═══
       try{saveCurrentInvesti();_saveCurrentRapportSlot();_sbSaveContenus();}catch(e){}
       // ═══ NETTOYER la galerie (chaque dossier a ses propres photos) ═══
-      _sharedImages=[]; _sharedImgPanelsDirty=true;
+      _clearGallery();
       var fpi=document.getElementById('fp-images-i-list');if(fpi)fpi.innerHTML='';
       var fpc=document.getElementById('fp-images-c-list');if(fpc)fpc.innerHTML='';
       window._dossier=dd; window._tableauLoaded=false; window._tableauFromServer=false; document.querySelectorAll('.facade-img').forEach(function(img){ img.src=''; img.style.display='none'; img.removeAttribute('data-storage-url'); });
@@ -6614,7 +6627,7 @@ function _doDashSearch(query){
     (function(dd){ btnR.onclick=function(){
       if(window._dossier && window._dossier._uid === dd._uid){ goTo('dommage'); return; }
       try{saveCurrentInvesti();_saveCurrentRapportSlot();_sbSaveContenus();}catch(e){}
-      _sharedImages=[]; _sharedImgPanelsDirty=true;
+      _clearGallery();
       var fpi2=document.getElementById('fp-images-i-list');if(fpi2)fpi2.innerHTML='';
       var fpc2=document.getElementById('fp-images-c-list');if(fpc2)fpc2.innerHTML='';
       window._dossier=dd; window._tableauLoaded=false; window._tableauFromServer=false; document.querySelectorAll('.facade-img').forEach(function(img){ img.src=''; img.style.display='none'; img.removeAttribute('data-storage-url'); });
@@ -6912,7 +6925,7 @@ function techCreateInterv(isUpdate){
       // Intervention différente → charger ses données
       // ═══ SAUVER LE DOSSIER ACTUEL avant de changer ═══
       try{saveCurrentInvesti();_saveCurrentRapportSlot();_sbSaveContenus();}catch(e){}
-      _sharedImages=[]; _sharedImgPanelsDirty=true;
+      _clearGallery();
       var fpi3=document.getElementById('fp-images-i-list');if(fpi3)fpi3.innerHTML='';
       var fpc3=document.getElementById('fp-images-c-list');if(fpc3)fpc3.innerHTML='';
       window._dossier=dd; window._tableauLoaded=false; window._tableauFromServer=false; document.querySelectorAll('.facade-img').forEach(function(img){ img.src=''; img.style.display='none'; img.removeAttribute('data-storage-url'); });
@@ -7197,10 +7210,7 @@ function _viderRapportPourNouvelleInterv(){
   var pdfFacade=document.getElementById('pdf-facade-preview');
   if(pdfFacade) pdfFacade.src='';
   // Vider images partagées
-  _sharedImages=[];
-  ['fp-images-i-list','fp-images-c-list'].forEach(function(listId){
-    var list=document.getElementById(listId); if(list) list.innerHTML='';
-  });
+  _clearGallery();
   // Reset squelette
   _activeSkelType=null;
   document.querySelectorAll('.skel-btn').forEach(function(b){ b.classList.remove('active'); });
