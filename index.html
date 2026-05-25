@@ -1377,9 +1377,9 @@ function _dossierToRow(d) {
     ref: d.ref || '', date: _frToIso(d.date),
     agence: d.agence || '', donneur: d.donneur || '',
     assurance: d.assurance || '', expert: d.expert || '',
-    client: d.client || '', adresse: d.adresse || '',
+    client: d.client || '', adresse: d.adresse || '', adresse2: d.adresse2 || '', adresse3: d.adresse3 || '',
     cp: d.cp || '', ville: d.ville || '',
-    fnm: d.fnm || '', fadresse: d.fadresse || '',
+    fnm: d.fnm || '', fadresse: d.fadresse || '', fadresse2: d.fadresse2 || '', fadresse3: d.fadresse3 || '',
     fcp: d.fcp || '', fville: d.fville || '',
     refdossier: d.refdossier || '', refsinistre: d.refsinistre || '',
     refexpert: d.refexpert || '',
@@ -1400,9 +1400,9 @@ function _rowToDossier(row) {
     ref: row.ref || '', date: _isoToFr(row.date),
     agence: row.agence || '', donneur: row.donneur || '',
     assurance: row.assurance || '', expert: row.expert || '',
-    client: row.client || '', adresse: row.adresse || '',
+    client: row.client || '', adresse: row.adresse || '', adresse2: row.adresse2 || '', adresse3: row.adresse3 || '',
     cp: row.cp || '', ville: row.ville || '',
-    fnm: row.fnm || '', fadresse: row.fadresse || '',
+    fnm: row.fnm || '', fadresse: row.fadresse || '', fadresse2: row.fadresse2 || '', fadresse3: row.fadresse3 || '',
     fcp: row.fcp || '', fville: row.fville || '',
     refdossier: row.refdossier || '', refsinistre: row.refsinistre || '',
     refexpert: row.refexpert || '',
@@ -2016,9 +2016,9 @@ function _editCurrentDossier(btn){
   _pendingUpdateBtn = btn;
   // Pré-remplir la modale
   function setV(id,val){ var e=document.getElementById(id); if(e) e.value=(val||''); }
-  setV('tni-ref',d.ref); setV('tni-client',d.client); setV('tni-adresse',d.adresse);
+  setV('tni-ref',d.ref); setV('tni-client',d.client); setV('tni-adresse',d.adresse); setV('tni-adresse2',d.adresse2); setV('tni-adresse3',d.adresse3);
   setV('tni-cp',d.cp); setV('tni-ville',d.ville);
-  setV('tni-fnm',d.fnm); setV('tni-fadresse',d.fadresse); setV('tni-fcp',d.fcp); setV('tni-fville',d.fville);
+  setV('tni-fnm',d.fnm); setV('tni-fadresse',d.fadresse); setV('tni-fadresse2',d.fadresse2); setV('tni-fadresse3',d.fadresse3); setV('tni-fcp',d.fcp); setV('tni-fville',d.fville);
   setV('tni-contact',d.contact?d.contact.split('/').reverse().join('-'):'');
   setV('tni-date',d.date?d.date.split('/').reverse().join('-'):'');
   setV('tni-edition',d.edition?d.edition.split('/').reverse().join('-'):'');
@@ -5025,8 +5025,8 @@ function _sbGeneratePDF(){
   var dossierData={
     ref:d.ref||'', date:d.date||'', agence:d.agence||'',
     donneur:d.donneur||'', assurance:d.assurance||'', expert:d.expert||'',
-    client:d.client||'', adresse:d.adresse||'', cp:d.cp||'', ville:d.ville||'',
-    fnm:d.fnm||'', fadresse:d.fadresse||'', fcp:d.fcp||'', fville:d.fville||'',
+    client:d.client||'', adresse:d.adresse||'', adresse2:d.adresse2||'', adresse3:d.adresse3||'', cp:d.cp||'', ville:d.ville||'',
+    fnm:d.fnm||'', fadresse:d.fadresse||'', fadresse2:d.fadresse2||'', fadresse3:d.fadresse3||'', fcp:d.fcp||'', fville:d.fville||'',
     refdossier:d.refdossier||'', refsinistre:d.refsinistre||'', refexpert:d.refexpert||'',
     contact:d.contact||'', devis:d.devis||'', edition:d.edition||''
   };
@@ -6354,8 +6354,8 @@ function _rapportData(){
     donneur: d.donneur||'', assurance: d.assurance||'',
     expert: d.expert||'', refdossier: d.refdossier||'',
     refsinistre: d.refsinistre||'', refexpert: d.refexpert||'',
-    facturation: (d.fnm||'')+'\n'+(d.fadresse||'')+'\n'+(d.fcp||'')+(d.fville?' '+d.fville:''),
-    intervention: (d.client||'')+'\n'+(d.adresse||'')+'\n'+(d.cp||'')+(d.ville?' '+d.ville:''),
+    facturation: [d.fnm, d.fadresse, d.fadresse2, d.fadresse3, (d.fcp||'')+(d.fville?' '+d.fville:'')].filter(Boolean).join('\n'),
+    intervention: [d.client, d.adresse, d.adresse2, d.adresse3, (d.cp||'')+(d.ville?' '+d.ville:'')].filter(Boolean).join('\n'),
     ville: d.ville||'Salon De Provence'
   };
 }
@@ -6495,8 +6495,8 @@ function techSubmitInterv(){
     d.ref=fld('tni-ref').trim()||d.ref;
     d.client=fld('tni-client').trim()||d.client;
     d.ville=fld('tni-ville').trim()||d.ville;
-    d.adresse=fld('tni-adresse'); d.cp=fld('tni-cp');
-    d.fnm=fld('tni-fnm'); d.fadresse=fld('tni-fadresse'); d.fcp=fld('tni-fcp'); d.fville=fld('tni-fville');
+    d.adresse=fld('tni-adresse'); d.adresse2=fld('tni-adresse2'); d.adresse3=fld('tni-adresse3'); d.cp=fld('tni-cp');
+    d.fnm=fld('tni-fnm'); d.fadresse=fld('tni-fadresse'); d.fadresse2=fld('tni-fadresse2'); d.fadresse3=fld('tni-fadresse3'); d.fcp=fld('tni-fcp'); d.fville=fld('tni-fville');
     d.contact=fmtD('tni-contact'); d.date=fmtD('tni-date')||d.date; d.edition=fmtD('tni-edition');
     d.agence=fld('tni-agence'); d.devis=fld('tni-devis'); d.donneur=fld('tni-donneur');
     d.assurance=fld('tni-assurance'); d.expert=fld('tni-expert');
@@ -7768,6 +7768,8 @@ function adSec(navEl,name){
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div style="grid-column:1/-1"><label style="font-size:11px;font-weight:600;color:#64748B;display:block;margin-bottom:3px">Nom client</label><input id="tni-client" style="width:100%;border:1.5px solid #cbd5e1;border-radius:7px;padding:9px;font-size:14px;box-sizing:border-box;-webkit-appearance:none"></div>
         <div style="grid-column:1/-1"><label style="font-size:11px;font-weight:600;color:#64748B;display:block;margin-bottom:3px">Adresse</label><input id="tni-adresse" style="width:100%;border:1.5px solid #cbd5e1;border-radius:7px;padding:9px;font-size:14px;box-sizing:border-box;-webkit-appearance:none"></div>
+        <div style="grid-column:1/-1"><label style="font-size:11px;font-weight:600;color:#64748B;display:block;margin-bottom:3px">Adresse 2</label><input id="tni-adresse2" style="width:100%;border:1.5px solid #cbd5e1;border-radius:7px;padding:9px;font-size:14px;box-sizing:border-box;-webkit-appearance:none"></div>
+        <div style="grid-column:1/-1"><label style="font-size:11px;font-weight:600;color:#64748B;display:block;margin-bottom:3px">Adresse 3</label><input id="tni-adresse3" style="width:100%;border:1.5px solid #cbd5e1;border-radius:7px;padding:9px;font-size:14px;box-sizing:border-box;-webkit-appearance:none"></div>
         <div><label style="font-size:11px;font-weight:600;color:#64748B;display:block;margin-bottom:3px">Code postal</label><input id="tni-cp" style="width:100%;border:1.5px solid #cbd5e1;border-radius:7px;padding:9px;font-size:14px;box-sizing:border-box;-webkit-appearance:none"></div>
         <div><label style="font-size:11px;font-weight:600;color:#64748B;display:block;margin-bottom:3px">Ville</label><input id="tni-ville" style="width:100%;border:1.5px solid #cbd5e1;border-radius:7px;padding:9px;font-size:14px;box-sizing:border-box;-webkit-appearance:none"></div>
       </div>
@@ -7777,6 +7779,8 @@ function adSec(navEl,name){
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div style="grid-column:1/-1"><label style="font-size:11px;font-weight:600;color:#64748B;display:block;margin-bottom:3px">Nom facturation</label><input id="tni-fnm" style="width:100%;border:1.5px solid #cbd5e1;border-radius:7px;padding:9px;font-size:14px;box-sizing:border-box;-webkit-appearance:none"></div>
         <div style="grid-column:1/-1"><label style="font-size:11px;font-weight:600;color:#64748B;display:block;margin-bottom:3px">Adresse facturation</label><input id="tni-fadresse" style="width:100%;border:1.5px solid #cbd5e1;border-radius:7px;padding:9px;font-size:14px;box-sizing:border-box;-webkit-appearance:none"></div>
+        <div style="grid-column:1/-1"><label style="font-size:11px;font-weight:600;color:#64748B;display:block;margin-bottom:3px">Adresse 2</label><input id="tni-fadresse2" style="width:100%;border:1.5px solid #cbd5e1;border-radius:7px;padding:9px;font-size:14px;box-sizing:border-box;-webkit-appearance:none"></div>
+        <div style="grid-column:1/-1"><label style="font-size:11px;font-weight:600;color:#64748B;display:block;margin-bottom:3px">Adresse 3</label><input id="tni-fadresse3" style="width:100%;border:1.5px solid #cbd5e1;border-radius:7px;padding:9px;font-size:14px;box-sizing:border-box;-webkit-appearance:none"></div>
         <div><label style="font-size:11px;font-weight:600;color:#64748B;display:block;margin-bottom:3px">Code postal</label><input id="tni-fcp" style="width:100%;border:1.5px solid #cbd5e1;border-radius:7px;padding:9px;font-size:14px;box-sizing:border-box;-webkit-appearance:none"></div>
         <div><label style="font-size:11px;font-weight:600;color:#64748B;display:block;margin-bottom:3px">Ville</label><input id="tni-fville" style="width:100%;border:1.5px solid #cbd5e1;border-radius:7px;padding:9px;font-size:14px;box-sizing:border-box;-webkit-appearance:none"></div>
       </div>
