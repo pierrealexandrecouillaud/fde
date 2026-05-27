@@ -7125,6 +7125,9 @@ function _restoreFromSupabase(d, onDone){
           logCont.innerHTML=contenus.tableauHtml; _fixInvestiImages(logCont);
           var cards=logCont.querySelectorAll('.logement-card');
           if(cards.length>0) _lc=cards.length;
+          window._tableauLoaded=true;
+          window._tableauFromServer=true;
+          setTimeout(function(){ window._tableauFromServer=false; }, 30000);
         }
         updateLogsVisites();
       } else {
