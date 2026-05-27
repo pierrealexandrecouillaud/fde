@@ -3571,6 +3571,16 @@ function saveCursorPos(){
 // Sauvegarder la position sur chaque TAP dans l'éditeur (touchend = intentionnel)
 // PAS selectionchange (trop imprévisible, se déclenche au scroll)
 document.addEventListener('DOMContentLoaded', function(){
+  // Délégation d'événements pour les boutons supprimer photo dans le tableau
+  var _lcDel=document.getElementById('logements-container');
+  if(_lcDel) _lcDel.addEventListener('click', function(e){
+    var btn=e.target.closest('.photo-del');
+    if(btn){
+      var thumb=btn.closest('.photo-thumb')||btn.parentElement;
+      if(thumb) thumb.remove();
+      if(typeof renumberPhotos==='function') renumberPhotos();
+    }
+  });
   function _hookEditor(id){
     var ed=document.getElementById(id); if(!ed) return;
     ed.addEventListener('touchend', function(){ setTimeout(saveCursorPos, 50); });
