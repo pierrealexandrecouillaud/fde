@@ -2232,9 +2232,11 @@ function goTo(pageId){
   if(pageId==='dommage'){
     // ═══ TOUJOURS charger le tableau de dégâts depuis Supabase ═══
     var _dd2=window._dossier;
+    alert('goTo dommage: sbId='+((_dd2&&_dd2._sbId)||'NONE'));
     if(_dd2 && _dd2._sbId && _sb){
       _sb.from('contenus').select('investigation_html,skel_type').eq('intervention_id',_dd2._sbId).eq('logement_id','_tableau').single()
       .then(function(r){
+        alert('Supabase tableau: '+(r.data&&r.data.investigation_html?r.data.investigation_html.length:'VIDE')+' chars');
         if(r.data && r.data.investigation_html && r.data.investigation_html.length>500){
           var _dmgCont=document.getElementById('logements-container');
           if(_dmgCont){
@@ -4690,16 +4692,7 @@ function _doRestoreSession(data){
     setTimeout(function(){
       if(data.conclusion){ var ed=document.getElementById('editor-conclusion'); if(ed) ed.innerHTML=data.conclusion; }
       if(data.investigationDirect){ var edi=document.getElementById('editor-investi'); if(edi) edi.innerHTML=data.investigationDirect; }
-      if(data.tableauDirect && data.tableauDirect.length>50){
-        var lc=document.getElementById('logements-container');
-        if(lc){
-          lc.innerHTML=data.tableauDirect; _fixInvestiImages(lc);
-          // Mettre à jour le compteur de logements
-          var cards=lc.querySelectorAll('.logement-card');
-          if(cards.length>0) _lc=cards.length;
-          updateLogsVisites();
-        }
-      }
+      // tableauDirect désactivé — le tableau est TOUJOURS chargé depuis Supabase dans goTo('dommage')
     }, 800);
     // Restaurer les logements
     if(data.logements && data.logements.length>0){
