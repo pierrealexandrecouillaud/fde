@@ -1652,7 +1652,8 @@ function _sbSaveContenus() {
   if(window._tableauFromServer) { console.log('[FDE] Tableau save SKIPPED (fromServer)'); }
   else {
   var logCont = document.getElementById('logements-container');
-  if (logCont && logCont.children.length > 0) {
+  var _hasRealCards = logCont && logCont.querySelectorAll('.logement-card').length > 0;
+  if (logCont && _hasRealCards) {
     // Synchroniser inputs/checkboxes → attributs HTML
     logCont.querySelectorAll('input,select,textarea').forEach(function(inp){
       if(inp.type==='checkbox'){ if(inp.checked) inp.setAttribute('checked','checked'); else inp.removeAttribute('checked'); }
@@ -2229,19 +2230,26 @@ function goTo(pageId){
     if(!_sharedImages.length) _recoverSharedImages();
   }
   if(pageId==='dommage'){
-    // ═══ RESTAURER le tableau de dégâts depuis Supabase si le conteneur est vide ═══
-    var _dmgCont=document.getElementById('logements-container');
+    // ═══ TOUJOURS charger le tableau de dégâts depuis Supabase ═══
     var _dd2=window._dossier;
-    if(_dmgCont && _dmgCont.innerHTML.length<500 && _dd2 && _dd2._sbId && _sb){
-      _sb.from('contenus').select('investigation_html').eq('intervention_id',_dd2._sbId).eq('logement_id','_tableau').single()
+    if(_dd2 && _dd2._sbId && _sb){
+      _sb.from('contenus').select('investigation_html,skel_type').eq('intervention_id',_dd2._sbId).eq('logement_id','_tableau').single()
       .then(function(r){
         if(r.data && r.data.investigation_html && r.data.investigation_html.length>500){
-          _dmgCont.innerHTML=r.data.investigation_html;
-          var _rtCards=_dmgCont.querySelectorAll('.logement-card');
-          if(_rtCards.length>0) _lc=_rtCards.length;
-          window._tableauLoaded=true;
-          updateLogsVisites();
-          console.log('[FDE] Tableau restauré depuis Supabase: '+r.data.investigation_html.length+' chars');
+          var _dmgCont=document.getElementById('logements-container');
+          if(_dmgCont){
+            _dmgCont.innerHTML=r.data.investigation_html;
+            var _rtCards=_dmgCont.querySelectorAll('.logement-card');
+            if(_rtCards.length>0) _lc=_rtCards.length;
+            window._tableauLoaded=true;
+            window._tableauFromServer=true;
+            setTimeout(function(){ window._tableauFromServer=false; }, 30000);
+            updateLogsVisites();
+            console.log('[FDE] Tableau chargé depuis Supabase: '+r.data.investigation_html.length+' chars');
+          }
+        }
+        if(r.data && r.data.skel_type && !_activeSkelType){
+          _activeSkelType=r.data.skel_type;
         }
       });
     }
