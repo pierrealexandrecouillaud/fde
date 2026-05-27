@@ -1662,7 +1662,6 @@ function _sbSaveContenus() {
     logCont.querySelectorAll('[id$="-detail"]').forEach(function(det){ if(det.querySelector('tr')) det.style.display='block'; });
     var tableauHtml = logCont.innerHTML;
     _sb.from('contenus').upsert({
-    _sb.from('contenus').upsert({
       intervention_id: d._sbId,
       logement_id: '_tableau',
       investigation_html: tableauHtml,
