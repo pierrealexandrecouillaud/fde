@@ -777,7 +777,7 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
         <button class="tb" onclick="execCmd('foreColor','#009fe3')" title="Bleu" style="color:#009fe3;font-weight:800;font-size:15px">A</button>
         <button class="tb" onclick="execCmd('foreColor','#000000')" title="Noir"><b style="color:#000000">A</b></button><button onclick="execCmd('foreColor','#e12b2b')" title="Rouge" style="color:#e12b2b;font-weight:800;font-size:15px">A</button>
       </div>
-      <div class="editor-area" contenteditable="true" id="editor-investi" style="flex:1;min-height:500px;width:100%;box-sizing:border-box;padding-bottom:120px">
+      <div class="editor-area" contenteditable="true" id="editor-investi" style="flex:1;min-height:500px;width:100%;box-sizing:border-box;padding-bottom:120px;color:#000000">
         <p style="color:var(--text-muted)">Sélectionnez un logement visité via le bouton 🏠 à droite pour charger le squelette.</p>
       </div>
     </div>
@@ -856,7 +856,7 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
         <button class="tb" onclick="execCmd('foreColor','#009fe3')" title="Bleu" style="color:#009fe3;font-weight:800;font-size:15px">A</button>
         <button class="tb" onclick="execCmd('foreColor','#000000')" title="Noir"><b style="color:#000000">A</b></button><button onclick="execCmd('foreColor','#e12b2b')" title="Rouge" style="color:#e12b2b;font-weight:800;font-size:15px">A</button>
       </div>
-      <div class="editor-area" contenteditable="true" id="editor-conclusion" style="min-height:380px">
+      <div class="editor-area" contenteditable="true" id="editor-conclusion" style="min-height:380px;color:#000000">
 <p><strong>1. Synthèse de la recherche de fuite technique</strong></p>
 <br>
 <p>- Nous avons constaté une absence de relevé d'étanchéité en bout de couvertine sous la toiture tuile au-dessus du mur maçonné.</p>
@@ -1660,10 +1660,11 @@ function _sbSaveContenus() {
       else inp.setAttribute('value',inp.value||'');
     });
     logCont.querySelectorAll('[id$="-detail"]').forEach(function(det){ if(det.querySelector('tr')) det.style.display='block'; });
+    var tableauHtml = logCont.innerHTML;
     _sb.from('contenus').upsert({
       intervention_id: d._sbId,
       logement_id: '_tableau',
-      investigation_html: logCont.innerHTML,
+      investigation_html: tableauHtml,
       skel_type: _activeSkelType || ''
     }, { onConflict: 'intervention_id,logement_id' })
     .then(function(r) {
@@ -2812,7 +2813,7 @@ function toggleSkelExclusif(btn, type){
   btn.classList.add('active');
   _activeSkelType=type;
   var edC=document.getElementById('editor-conclusion');
-  if(edC && SKEL_CONCLUSION[type]){ var _cc=SKEL_CONCLUSION[type].replace(/<\/p>\s*<p([ >])/g,'</p><br><p$1'); edC.innerHTML=_cc; }
+  if(edC && SKEL_CONCLUSION[type]){ var _cc=SKEL_CONCLUSION[type]; edC.innerHTML=_cc; }
   var edI=document.getElementById('editor-investi');
   if(edI && _currentLogId && SKEL_INVESTI[type]){
     var log=_logsVisites&&_logsVisites.find(function(l){return l.id===_currentLogId;});
@@ -2837,7 +2838,7 @@ function toggleSkelDommage(btn, type){
     // Charger conclusion
     var edC = document.getElementById('editor-conclusion');
     if(edC && SKEL_CONCLUSION[type]){
-      var _cc3=SKEL_CONCLUSION[type].replace(/<\/p>\s*<p([ >])/g,'</p><br><p$1'); edC.innerHTML=_cc3;
+      var _cc3=SKEL_CONCLUSION[type]; edC.innerHTML=_cc3;
     }
     // Le squelette investigation sera chargé au moment de sélectionner un logement
     // Mémoriser aussi dans l'éditeur investigation si déjà ouvert
@@ -3074,7 +3075,7 @@ function loadInvestiSkeleton(log){
   // Restaurer le contenu sauvegardé
   if(_investiContents[log.id] && _investiContents[log.id].length>30){
     var _rc=_investiContents[log.id];
-    _rc=_rc.replace(/<\/p>\s*<p([ >])/g,'</p><br><p$1');
+    _rc=_rc;
     ed.innerHTML=_rc;
     // Réparer les images dont le src a été nettoyé mais data-full-src existe
     _fixInvestiImages(ed);
@@ -3096,7 +3097,7 @@ function loadInvestiSkeleton(log){
         // Si Supabase a du contenu pour CE logement, recharger
         if(_investiContents[log.id] && _investiContents[log.id].length>30){
           var _rc2=_investiContents[log.id];
-          ed.innerHTML=_rc2.replace(/<\/p>\s*<p([ >])/g,'</p><br><p$1');
+          ed.innerHTML=_rc2;
           _fixInvestiImages(ed);
           toast('Contenu restauré depuis le serveur : '+log.nom);
         }
@@ -3212,8 +3213,6 @@ function _loadEmptySkeleton(ed, label){
   var corps;
   if(_activeSkelType && SKEL_INVESTI[_activeSkelType]){
     corps = SKEL_INVESTI[_activeSkelType];
-    corps = corps.replace(/<\/p>\s*<p([ >])/g, '</p><br><p$1');
-    corps = corps.replace(/<\/p><br><br><p><strong>/g, '</p><br><p><strong>');
   } else {
     corps = '<p style="color:#94a3b8;font-style:italic">\u26a0\ufe0f Aucun type de dommage sélectionné dans la page Dommage. Retournez dans Dommage et cochez le type d\'intervention avant de rédiger.</p>';
   }
