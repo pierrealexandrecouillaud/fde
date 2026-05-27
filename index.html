@@ -2229,6 +2229,22 @@ function goTo(pageId){
     if(!_sharedImages.length) _recoverSharedImages();
   }
   if(pageId==='dommage'){
+    // ═══ RESTAURER le tableau de dégâts depuis Supabase si le conteneur est vide ═══
+    var _dmgCont=document.getElementById('logements-container');
+    var _dd2=window._dossier;
+    if(_dmgCont && _dmgCont.innerHTML.length<500 && _dd2 && _dd2._sbId && _sb){
+      _sb.from('contenus').select('investigation_html').eq('intervention_id',_dd2._sbId).eq('logement_id','_tableau').single()
+      .then(function(r){
+        if(r.data && r.data.investigation_html && r.data.investigation_html.length>500){
+          _dmgCont.innerHTML=r.data.investigation_html;
+          var _rtCards=_dmgCont.querySelectorAll('.logement-card');
+          if(_rtCards.length>0) _lc=_rtCards.length;
+          window._tableauLoaded=true;
+          updateLogsVisites();
+          console.log('[FDE] Tableau restauré depuis Supabase: '+r.data.investigation_html.length+' chars');
+        }
+      });
+    }
     // ═══ RESTAURER le type de squelette si pas coché ═══
     var _skelBtns=document.querySelectorAll('.skel-btn');
     var _hasActive=false;
