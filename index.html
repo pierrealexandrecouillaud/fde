@@ -2010,11 +2010,13 @@ function _loadAdminPhrasesToPanel(){ /* stub — pas critique */ }
 /* ═══ Éditer le dossier courant depuis le dashboard ═══ */
 var _pendingUpdate = false;
 var _pendingUpdateBtn = null;
-function _editCurrentDossier(btn){
-  var d=window._dossier;
+var _pendingUpdateDossier = null;
+function _editCurrentDossier(btn, dossierOverride){
+  var d = dossierOverride || window._dossier;
   if(!d){ toast('Créez d\'abord une intervention'); return; }
   _pendingUpdate = true;
   _pendingUpdateBtn = btn;
+  _pendingUpdateDossier = d;
   // Pré-remplir la modale
   function setV(id,val){ var e=document.getElementById(id); if(e) e.value=(val||''); }
   setV('tni-ref',d.ref); setV('tni-client',d.client); setV('tni-adresse',d.adresse); setV('tni-adresse2',d.adresse2); setV('tni-adresse3',d.adresse3);
@@ -4426,7 +4428,7 @@ function _restoreDashboardFromDossiers(){
     var btnM=document.createElement('button'); btnM.className='btn-action';
     btnM.style.cssText='background:#1e293b;color:white;border-color:#1e293b;touch-action:manipulation';
     btnM.innerHTML='<i class="ti ti-pencil"></i>';
-    btnM.onclick=function(){ _editCurrentDossier(btnM); };
+    btnM.onclick=(function(_d){ return function(){ _editCurrentDossier(btnM, _d); }; })(d);
     // Bouton Supprimer
     var btnD=document.createElement('button'); btnD.className='btn-action';
     btnD.style.cssText='background:var(--red);color:white;border-color:var(--red);touch-action:manipulation';
@@ -6491,7 +6493,7 @@ var _editingInterv = null;
 function techSubmitInterv(){
   if(_pendingUpdate){
     // ═══ MODE MODIFICATION DIRECTE ═══
-    var d=window._dossier;
+    var d=_pendingUpdateDossier || window._dossier;
     if(!d){ _pendingUpdate=false; return; }
     function fld(id){ return (document.getElementById(id)||{}).value||''; }
     function fmtD(id){ var v=fld(id); return v?v.split('-').reverse().join('/'):''; }
@@ -6542,6 +6544,7 @@ function techSubmitInterv(){
     _sbUpdateIntervention(d);
     _pendingUpdate=false;
     _pendingUpdateBtn=null;
+    _pendingUpdateDossier=null;
     // Remettre bouton en mode création
     var btn=document.getElementById('modal-submit-btn');
     if(btn){ btn.textContent='Cr\u00e9er l\'intervention'; btn.style.background='#ff8900'; }
@@ -7008,7 +7011,7 @@ function techCreateInterv(isUpdate){
     btnM.style.cssText='background:#1e293b;color:white;border-color:#1e293b;touch-action:manipulation';
     btnM.innerHTML='<i class="ti ti-pencil"></i>';
     btnM.title='Modifier les infos';
-    btnM.onclick=function(){ _editCurrentDossier(btnM); };
+    btnM.onclick=(function(_d){ return function(){ _editCurrentDossier(btnM, _d); }; })(d);
     var btnD=document.createElement('button'); btnD.className='btn-action btn-dl';
     btnD.innerHTML='<i class="ti ti-download"></i>'; btnD.style.touchAction='manipulation';
     btnD.onclick=function(){ downloadPDF(); };
