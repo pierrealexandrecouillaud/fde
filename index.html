@@ -3048,7 +3048,7 @@ function _cleanupBeforeDossierSwitch(){
   window._tableauFromServer=false;
   try{saveCurrentInvesti();_saveCurrentRapportSlot();_sbSaveContenus();}catch(e){}
   // Nettoyer galerie (identique à hier)
-  _sharedImages=[]; _sharedImgPanelsDirty=true; var _fpi=document.getElementById("fp-images-i-list");if(_fpi)_fpi.innerHTML=""; var _fpc=document.getElementById("fp-images-c-list");if(_fpc)_fpc.innerHTML="";
+  _clearGallery();
   // Nettoyer façade (identique à hier)
   document.querySelectorAll('.facade-img').forEach(function(img){ img.src=''; img.style.display='none'; img.removeAttribute('data-storage-url'); });
   // Reset flags (identique à hier)
@@ -4414,7 +4414,7 @@ function _restoreDashboardFromDossiers(){
     btnR.innerHTML='<i class="ti ti-pencil"></i> Remplir'; btnR.style.touchAction='manipulation';
     (function(dd){ btnR.onclick=function(){
       if(window._dossier && window._dossier._uid === dd._uid){ goTo('dommage'); return; }
-      try{saveCurrentInvesti();_saveCurrentRapportSlot();_sbSaveContenus();}catch(e){} _sharedImages=[]; _sharedImgPanelsDirty=true; var _fpi=document.getElementById("fp-images-i-list");if(_fpi)_fpi.innerHTML=""; var _fpc=document.getElementById("fp-images-c-list");if(_fpc)_fpc.innerHTML=""; window._tableauLoaded=false; window._tableauFromServer=false; document.querySelectorAll(".facade-img").forEach(function(img){ img.src=""; img.style.display="none"; img.removeAttribute("data-storage-url"); });
+      try{saveCurrentInvesti();_saveCurrentRapportSlot();_sbSaveContenus();}catch(e){} _clearGallery(); window._tableauLoaded=false; window._tableauFromServer=false; document.querySelectorAll(".facade-img").forEach(function(img){ img.src=""; img.style.display="none"; img.removeAttribute("data-storage-url"); });
       window._dossier=dd;
       if(!dd._uid || !_loadRapportSlot(dd._uid)){
         if(dd._sbId && _sb){ _restoreFromSupabase(dd, function(){ _syncAllCadres(); }); }
@@ -6702,7 +6702,7 @@ function _doDashSearch(query){
     btnR.innerHTML='<i class="ti ti-pencil"></i> Remplir'; btnR.style.touchAction='manipulation';
     (function(dd){ btnR.onclick=function(){
       if(window._dossier && window._dossier._uid === dd._uid){ goTo('dommage'); return; }
-      try{saveCurrentInvesti();_saveCurrentRapportSlot();_sbSaveContenus();}catch(e){} _sharedImages=[]; _sharedImgPanelsDirty=true; var _fpi=document.getElementById("fp-images-i-list");if(_fpi)_fpi.innerHTML=""; var _fpc=document.getElementById("fp-images-c-list");if(_fpc)_fpc.innerHTML=""; window._tableauLoaded=false; window._tableauFromServer=false; document.querySelectorAll(".facade-img").forEach(function(img){ img.src=""; img.style.display="none"; img.removeAttribute("data-storage-url"); });
+      try{saveCurrentInvesti();_saveCurrentRapportSlot();_sbSaveContenus();}catch(e){} _clearGallery(); window._tableauLoaded=false; window._tableauFromServer=false; document.querySelectorAll(".facade-img").forEach(function(img){ img.src=""; img.style.display="none"; img.removeAttribute("data-storage-url"); });
       window._dossier=dd;
       if(!dd._uid || !_loadRapportSlot(dd._uid)){
         if(dd._sbId && _sb){ _restoreFromSupabase(dd, function(){ _syncAllCadres(); }); }
@@ -6996,7 +6996,7 @@ function techCreateInterv(isUpdate){
         return;
       }
       // Intervention différente → charger ses données
-      try{saveCurrentInvesti();_saveCurrentRapportSlot();_sbSaveContenus();}catch(e){} _sharedImages=[]; _sharedImgPanelsDirty=true; var _fpi=document.getElementById("fp-images-i-list");if(_fpi)_fpi.innerHTML=""; var _fpc=document.getElementById("fp-images-c-list");if(_fpc)_fpc.innerHTML=""; window._tableauLoaded=false; window._tableauFromServer=false; document.querySelectorAll(".facade-img").forEach(function(img){ img.src=""; img.style.display="none"; img.removeAttribute("data-storage-url"); });
+      try{saveCurrentInvesti();_saveCurrentRapportSlot();_sbSaveContenus();}catch(e){} _clearGallery(); window._tableauLoaded=false; window._tableauFromServer=false; document.querySelectorAll(".facade-img").forEach(function(img){ img.src=""; img.style.display="none"; img.removeAttribute("data-storage-url"); });
       window._dossier=dd;
       if(!dd._uid || !_loadRapportSlot(dd._uid)){
         if(dd._sbId && _sb){ _restoreFromSupabase(dd, function(){ _syncAllCadres(); }); }
@@ -7282,7 +7282,7 @@ function _viderRapportPourNouvelleInterv(){
   var pdfFacade=document.getElementById('pdf-facade-preview');
   if(pdfFacade) pdfFacade.src='';
   // Vider images partagées
-  _sharedImages=[]; _sharedImgPanelsDirty=true; var _fpi=document.getElementById("fp-images-i-list");if(_fpi)_fpi.innerHTML=""; var _fpc=document.getElementById("fp-images-c-list");if(_fpc)_fpc.innerHTML="";
+  _clearGallery();
   // Reset squelette
   _activeSkelType=null;
   document.querySelectorAll('.skel-btn').forEach(function(b){ b.classList.remove('active'); });
