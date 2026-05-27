@@ -1649,7 +1649,7 @@ function _sbSaveContenus() {
 
   // 3. Sauvegarder le tableau de dégâts (TOUJOURS, sans conditions)
   // SAUF si le tableau vient d'être chargé depuis le serveur (évite d'écraser les données fraîches)
-  if(window._tableauFromServer) { /* skip — données du serveur, pas de réécriture */ }
+  if(window._tableauFromServer) { console.log('[FDE] Tableau save SKIPPED (fromServer)'); }
   else {
   var logCont = document.getElementById('logements-container');
   if (logCont && logCont.children.length > 0) {
@@ -1661,6 +1661,7 @@ function _sbSaveContenus() {
     });
     logCont.querySelectorAll('[id$="-detail"]').forEach(function(det){ if(det.querySelector('tr')) det.style.display='block'; });
     var tableauHtml = logCont.innerHTML;
+    console.log('[FDE] Tableau save: '+tableauHtml.length+' chars, children='+logCont.children.length);
     _sb.from('contenus').upsert({
       intervention_id: d._sbId,
       logement_id: '_tableau',
@@ -4668,8 +4669,8 @@ function _doRestoreSession(data){
         }
       }
     }, 800);
-    // Restaurer les logements
-    if(data.logements && data.logements.length>0){
+    // Restaurer les logements (SAUF si tableauDirect a déjà rempli le container)
+    if(data.logements && data.logements.length>0 && !(data.tableauDirect && data.tableauDirect.length>50)){
       var cont=document.getElementById('logements-container');
       if(cont){ cont.innerHTML=''; _lc=0; }
       window._restoringSession = true; // désactiver la vérification dans addLogement
@@ -4763,6 +4764,14 @@ function _doRestoreSession(data){
       _sharedImgPanelsDirty=true;
     }
     toast('\u2705 Session restaur\u00e9e — textes et images \u2713');
+    // ═══ SYNC SUPABASE après restauration session ═══
+    // Charger le tableau et l'investigation depuis Supabase (plus fiable que IDB)
+    var _rd = window._dossier;
+    if(_rd && _rd._sbId && _sb){
+      setTimeout(function(){
+        _restoreFromSupabase(_rd, function(){ _syncAllCadres(); });
+      }, 2000);
+    }
   try { if(typeof _loadAdminIntervsInDashboard==='function') _loadAdminIntervsInDashboard(); } catch(e2){}
   } catch(e){ console.error(e); toast('Erreur restauration: '+e.message); }
 }
