@@ -1662,6 +1662,10 @@ function _sbSaveContenus() {
     logCont.querySelectorAll('[id$="-detail"]').forEach(function(det){ if(det.querySelector('tr')) det.style.display='block'; });
     var tableauHtml = logCont.innerHTML;
     console.log('[FDE] Tableau save: '+tableauHtml.length+' chars, children='+logCont.children.length);
+    // Ne PAS sauver un tableau vide ou trop court (protection anti-écrasement)
+    if(tableauHtml.length < 500){
+      console.log('[FDE] Tableau trop court ('+tableauHtml.length+'), sauvegarde ignorée');
+    } else {
     _sb.from('contenus').upsert({
       intervention_id: d._sbId,
       logement_id: '_tableau',
@@ -1676,6 +1680,7 @@ function _sbSaveContenus() {
         }
       }
     });
+    } // fin else tableau trop court
   }
   } // fin else _tableauFromServer
 }
