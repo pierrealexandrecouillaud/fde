@@ -3039,22 +3039,14 @@ function renderLogsList(){
 ════════════════════════════════════════ */
 var _investiContents={}; // sauvegarde du contenu par logement id
 function _cleanupBeforeDossierSwitch(){
-  // Forcer la sauvegarde MÊME si tableauFromServer est true
+  // Sauver le dossier actuel (identique à hier)
   window._tableauFromServer=false;
   try{saveCurrentInvesti();_saveCurrentRapportSlot();_sbSaveContenus();}catch(e){}
-  // Nettoyer investigation
-  _investiContents={};
-  _currentLogId=null;
-  var edI=document.getElementById('editor-investi');
-  if(edI) edI.innerHTML='<p style="color:#94a3b8;font-style:italic">Chargement...</p>';
-  // Nettoyer conclusion
-  var edC=document.getElementById('editor-conclusion');
-  if(edC) edC.innerHTML='';
-  // Nettoyer galerie
+  // Nettoyer galerie (identique à hier)
   _clearGallery();
-  // Nettoyer façade
+  // Nettoyer façade (identique à hier)
   document.querySelectorAll('.facade-img').forEach(function(img){ img.src=''; img.style.display='none'; img.removeAttribute('data-storage-url'); });
-  // Reset flags
+  // Reset flags (identique à hier)
   window._tableauLoaded=false;
   window._tableauFromServer=false;
 }
