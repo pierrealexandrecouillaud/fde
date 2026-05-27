@@ -3039,7 +3039,8 @@ function renderLogsList(){
 ════════════════════════════════════════ */
 var _investiContents={}; // sauvegarde du contenu par logement id
 function _cleanupBeforeDossierSwitch(){
-  // Sauver le dossier actuel
+  // Forcer la sauvegarde MÊME si tableauFromServer est true
+  window._tableauFromServer=false;
   try{saveCurrentInvesti();_saveCurrentRapportSlot();_sbSaveContenus();}catch(e){}
   // Nettoyer investigation
   _investiContents={};
