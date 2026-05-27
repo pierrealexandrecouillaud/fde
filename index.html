@@ -4669,8 +4669,8 @@ function _doRestoreSession(data){
         }
       }
     }, 800);
-    // Restaurer les logements (SAUF si tableauDirect a déjà rempli le container)
-    if(data.logements && data.logements.length>0 && !(data.tableauDirect && data.tableauDirect.length>50)){
+    // Restaurer les logements
+    if(data.logements && data.logements.length>0){
       var cont=document.getElementById('logements-container');
       if(cont){ cont.innerHTML=''; _lc=0; }
       window._restoringSession = true; // désactiver la vérification dans addLogement
@@ -4764,14 +4764,6 @@ function _doRestoreSession(data){
       _sharedImgPanelsDirty=true;
     }
     toast('\u2705 Session restaur\u00e9e — textes et images \u2713');
-    // ═══ SYNC SUPABASE après restauration session ═══
-    // Charger le tableau et l'investigation depuis Supabase (plus fiable que IDB)
-    var _rd = window._dossier;
-    if(_rd && _rd._sbId && _sb){
-      setTimeout(function(){
-        _restoreFromSupabase(_rd, function(){ _syncAllCadres(); });
-      }, 2000);
-    }
   try { if(typeof _loadAdminIntervsInDashboard==='function') _loadAdminIntervsInDashboard(); } catch(e2){}
   } catch(e){ console.error(e); toast('Erreur restauration: '+e.message); }
 }
