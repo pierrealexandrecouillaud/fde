@@ -1659,11 +1659,6 @@ function _sbSaveContenus() {
     });
     logCont.querySelectorAll('[id$="-detail"]').forEach(function(det){ if(det.querySelector('tr')) det.style.display='block'; });
     var tableauHtml = logCont.innerHTML;
-    // DEBUG: indicateur visible
-    var _dbgDiv=document.getElementById('_dbg_save');
-    if(!_dbgDiv){ _dbgDiv=document.createElement('div'); _dbgDiv.id='_dbg_save'; _dbgDiv.style.cssText='position:fixed;top:0;left:0;right:0;background:red;color:white;text-align:center;font-size:12px;z-index:99999;padding:2px'; document.body.appendChild(_dbgDiv); }
-    _dbgDiv.textContent='SAVE tableau: '+tableauHtml.length+' chars → '+d._sbId.substring(0,8);
-    _dbgDiv.style.background=tableauHtml.length>2000?'green':'red';
     _sb.from('contenus').upsert({
       intervention_id: d._sbId,
       logement_id: '_tableau',
@@ -4439,18 +4434,13 @@ function _restoreDashboardFromDossiers(){
     btnR.innerHTML='<i class="ti ti-pencil"></i> Remplir'; btnR.style.touchAction='manipulation';
     (function(dd){ btnR.onclick=function(){
       if(window._dossier && window._dossier._uid === dd._uid){ goTo('dommage'); return; }
-      var _tcLC=document.getElementById("logements-container"); if(_tcLC&&_tcLC.innerHTML.length>100&&window._dossier&&window._dossier._uid){ _tcLC.querySelectorAll("input,select,textarea").forEach(function(inp){if(inp.type==="checkbox"){if(inp.checked)inp.setAttribute("checked","checked");else inp.removeAttribute("checked");}else if(inp.tagName==="TEXTAREA")inp.textContent=inp.value||"";else inp.setAttribute("value",inp.value||"");}); _tableauContents[window._dossier._uid]=_tcLC.innerHTML; } try{saveCurrentInvesti();_saveCurrentRapportSlot();_sbSaveContenus();}catch(e){} _sharedImages=[]; _sharedImgPanelsDirty=true; var _fpi=document.getElementById("fp-images-i-list");if(_fpi)_fpi.innerHTML=""; var _fpc=document.getElementById("fp-images-c-list");if(_fpc)_fpc.innerHTML=""; window._tableauLoaded=false; window._tableauFromServer=false; document.querySelectorAll(".facade-img").forEach(function(img){ img.src=""; img.style.display="none"; img.removeAttribute("data-storage-url"); });
+      try{saveCurrentInvesti();_saveCurrentRapportSlot();_sbSaveContenus();}catch(e){} _sharedImages=[]; _sharedImgPanelsDirty=true; var _fpi=document.getElementById("fp-images-i-list");if(_fpi)_fpi.innerHTML=""; var _fpc=document.getElementById("fp-images-c-list");if(_fpc)_fpc.innerHTML=""; window._tableauLoaded=false; window._tableauFromServer=false; document.querySelectorAll(".facade-img").forEach(function(img){ img.src=""; img.style.display="none"; img.removeAttribute("data-storage-url"); });
       window._dossier=dd;
       if(!dd._uid || !_loadRapportSlot(dd._uid)){
         if(dd._sbId && _sb){ _restoreFromSupabase(dd, function(){ _syncAllCadres(); }); }
         else { _viderRapportPourNouvelleInterv(); addLogement(); }
       }
       _syncAllCadres(); goTo('dommage');
-      // Restaurer le tableau de dégâts depuis la mémoire
-      if(dd._uid && _tableauContents[dd._uid]){
-        var _rtLC=document.getElementById('logements-container');
-        if(_rtLC){ _rtLC.innerHTML=_tableauContents[dd._uid]; var _rtCards=_rtLC.querySelectorAll('.logement-card'); if(_rtCards.length>0) _lc=_rtCards.length; window._tableauLoaded=true; }
-      }
       _refreshLogementsFromSupabase(dd);
     }; })(d);
     // Bouton Modifier
@@ -6723,18 +6713,13 @@ function _doDashSearch(query){
     btnR.innerHTML='<i class="ti ti-pencil"></i> Remplir'; btnR.style.touchAction='manipulation';
     (function(dd){ btnR.onclick=function(){
       if(window._dossier && window._dossier._uid === dd._uid){ goTo('dommage'); return; }
-      var _tcLC=document.getElementById("logements-container"); if(_tcLC&&_tcLC.innerHTML.length>100&&window._dossier&&window._dossier._uid){ _tcLC.querySelectorAll("input,select,textarea").forEach(function(inp){if(inp.type==="checkbox"){if(inp.checked)inp.setAttribute("checked","checked");else inp.removeAttribute("checked");}else if(inp.tagName==="TEXTAREA")inp.textContent=inp.value||"";else inp.setAttribute("value",inp.value||"");}); _tableauContents[window._dossier._uid]=_tcLC.innerHTML; } try{saveCurrentInvesti();_saveCurrentRapportSlot();_sbSaveContenus();}catch(e){} _sharedImages=[]; _sharedImgPanelsDirty=true; var _fpi=document.getElementById("fp-images-i-list");if(_fpi)_fpi.innerHTML=""; var _fpc=document.getElementById("fp-images-c-list");if(_fpc)_fpc.innerHTML=""; window._tableauLoaded=false; window._tableauFromServer=false; document.querySelectorAll(".facade-img").forEach(function(img){ img.src=""; img.style.display="none"; img.removeAttribute("data-storage-url"); });
+      try{saveCurrentInvesti();_saveCurrentRapportSlot();_sbSaveContenus();}catch(e){} _sharedImages=[]; _sharedImgPanelsDirty=true; var _fpi=document.getElementById("fp-images-i-list");if(_fpi)_fpi.innerHTML=""; var _fpc=document.getElementById("fp-images-c-list");if(_fpc)_fpc.innerHTML=""; window._tableauLoaded=false; window._tableauFromServer=false; document.querySelectorAll(".facade-img").forEach(function(img){ img.src=""; img.style.display="none"; img.removeAttribute("data-storage-url"); });
       window._dossier=dd;
       if(!dd._uid || !_loadRapportSlot(dd._uid)){
         if(dd._sbId && _sb){ _restoreFromSupabase(dd, function(){ _syncAllCadres(); }); }
         else { _viderRapportPourNouvelleInterv(); addLogement(); }
       }
       _syncAllCadres(); goTo('dommage');
-      // Restaurer le tableau de dégâts depuis la mémoire
-      if(dd._uid && _tableauContents[dd._uid]){
-        var _rtLC=document.getElementById('logements-container');
-        if(_rtLC){ _rtLC.innerHTML=_tableauContents[dd._uid]; var _rtCards=_rtLC.querySelectorAll('.logement-card'); if(_rtCards.length>0) _lc=_rtCards.length; window._tableauLoaded=true; }
-      }
       _refreshLogementsFromSupabase(dd);
     }; })(d);
     var btnD=document.createElement('button'); btnD.className='btn-action';
@@ -7022,7 +7007,7 @@ function techCreateInterv(isUpdate){
         return;
       }
       // Intervention différente → charger ses données
-      var _tcLC=document.getElementById("logements-container"); if(_tcLC&&_tcLC.innerHTML.length>100&&window._dossier&&window._dossier._uid){ _tcLC.querySelectorAll("input,select,textarea").forEach(function(inp){if(inp.type==="checkbox"){if(inp.checked)inp.setAttribute("checked","checked");else inp.removeAttribute("checked");}else if(inp.tagName==="TEXTAREA")inp.textContent=inp.value||"";else inp.setAttribute("value",inp.value||"");}); _tableauContents[window._dossier._uid]=_tcLC.innerHTML; } try{saveCurrentInvesti();_saveCurrentRapportSlot();_sbSaveContenus();}catch(e){} _sharedImages=[]; _sharedImgPanelsDirty=true; var _fpi=document.getElementById("fp-images-i-list");if(_fpi)_fpi.innerHTML=""; var _fpc=document.getElementById("fp-images-c-list");if(_fpc)_fpc.innerHTML=""; window._tableauLoaded=false; window._tableauFromServer=false; document.querySelectorAll(".facade-img").forEach(function(img){ img.src=""; img.style.display="none"; img.removeAttribute("data-storage-url"); });
+      try{saveCurrentInvesti();_saveCurrentRapportSlot();_sbSaveContenus();}catch(e){} _sharedImages=[]; _sharedImgPanelsDirty=true; var _fpi=document.getElementById("fp-images-i-list");if(_fpi)_fpi.innerHTML=""; var _fpc=document.getElementById("fp-images-c-list");if(_fpc)_fpc.innerHTML=""; window._tableauLoaded=false; window._tableauFromServer=false; document.querySelectorAll(".facade-img").forEach(function(img){ img.src=""; img.style.display="none"; img.removeAttribute("data-storage-url"); });
       window._dossier=dd;
       if(!dd._uid || !_loadRapportSlot(dd._uid)){
         if(dd._sbId && _sb){ _restoreFromSupabase(dd, function(){ _syncAllCadres(); }); }
@@ -7030,11 +7015,6 @@ function techCreateInterv(isUpdate){
       }
       _syncAllCadres();
       goTo('dommage');
-      // Restaurer le tableau de dégâts depuis la mémoire
-      if(dd._uid && _tableauContents[dd._uid]){
-        var _rtLC=document.getElementById('logements-container');
-        if(_rtLC){ _rtLC.innerHTML=_tableauContents[dd._uid]; var _rtCards=_rtLC.querySelectorAll('.logement-card'); if(_rtCards.length>0) _lc=_rtCards.length; window._tableauLoaded=true; }
-      }
       _refreshLogementsFromSupabase(dd);
     }; })(d);
     var btnM=document.createElement('button'); btnM.className='btn-action';
