@@ -1648,31 +1648,43 @@ function _sbSaveContenus() {
   }
 
   // 3. Sauvegarder le tableau de dégâts
-  var logCont = document.getElementById('logements-container');
-  var _hasRealCards = logCont && logCont.querySelectorAll('.logement-card').length > 0;
-  if (logCont && _hasRealCards) {
-    // Synchroniser inputs/checkboxes → attributs HTML
-    logCont.querySelectorAll('input,select,textarea').forEach(function(inp){
-      if(inp.type==='checkbox'){ if(inp.checked) inp.setAttribute('checked','checked'); else inp.removeAttribute('checked'); }
-      else if(inp.tagName==='TEXTAREA') inp.textContent=inp.value||'';
-      else inp.setAttribute('value',inp.value||'');
-    });
-    logCont.querySelectorAll('[id$="-detail"]').forEach(function(det){ if(det.querySelector('tr')) det.style.display='block'; });
-    var tableauHtml = logCont.innerHTML;
-    _sb.from('contenus').upsert({
-      intervention_id: d._sbId,
-      logement_id: '_tableau',
-      investigation_html: tableauHtml,
-      skel_type: _activeSkelType || ''
-    }, { onConflict: 'intervention_id,logement_id' })
-    .then(function(r) {
-      if (r.error) {
-        console.warn('[FDE] Erreur save tableau:', r.error.message);
-        if(r.error.message.indexOf('foreign key')>=0 && d._sbId){
-          d._sbId=null; if(window._dossier) window._dossier._sbId=null;
-        }
+  // ═══ GARDE-FOU : ne JAMAIS sauvegarder vers Supabase si le tableau n'a pas été
+  // chargé depuis le serveur (window._tableauLoaded). Sans ça, au redémarrage de l'app,
+  // la restauration locale crée des cartes basiques qui écrasent les vraies données. ═══
+  if (!window._tableauLoaded) {
+    console.log('[FDE] ⏭️ Tableau non chargé depuis Supabase — skip save tableau (évite écrasement)');
+  } else {
+    var logCont = document.getElementById('logements-container');
+    var _hasRealCards = logCont && logCont.querySelectorAll('.logement-card').length > 0;
+    if (logCont && _hasRealCards) {
+      // Synchroniser inputs/checkboxes → attributs HTML
+      logCont.querySelectorAll('input,select,textarea').forEach(function(inp){
+        if(inp.type==='checkbox'){ if(inp.checked) inp.setAttribute('checked','checked'); else inp.removeAttribute('checked'); }
+        else if(inp.tagName==='TEXTAREA') inp.textContent=inp.value||'';
+        else inp.setAttribute('value',inp.value||'');
+      });
+      logCont.querySelectorAll('[id$="-detail"]').forEach(function(det){ if(det.querySelector('tr')) det.style.display='block'; });
+      var tableauHtml = logCont.innerHTML;
+      // Double sécurité : ne pas écraser si le HTML est trop petit (< 500 chars = probablement vide/basique)
+      if (tableauHtml.length < 500 && logCont.querySelector('input[type="checkbox"]:checked')) {
+        console.warn('[FDE] ⚠️ Tableau HTML trop petit (' + tableauHtml.length + ' chars) avec des coches — skip save pour éviter écrasement');
+      } else {
+        _sb.from('contenus').upsert({
+          intervention_id: d._sbId,
+          logement_id: '_tableau',
+          investigation_html: tableauHtml,
+          skel_type: _activeSkelType || ''
+        }, { onConflict: 'intervention_id,logement_id' })
+        .then(function(r) {
+          if (r.error) {
+            console.warn('[FDE] Erreur save tableau:', r.error.message);
+            if(r.error.message.indexOf('foreign key')>=0 && d._sbId){
+              d._sbId=null; if(window._dossier) window._dossier._sbId=null;
+            }
+          }
+        });
       }
-    });
+    }
   }
 }
 
@@ -2234,11 +2246,14 @@ function goTo(pageId){
             _dmgCont.innerHTML=r.data.investigation_html;
             var _rtCards=_dmgCont.querySelectorAll('.logement-card');
             if(_rtCards.length>0) _lc=_rtCards.length;
-            window._tableauLoaded=true;
             updateLogsVisites();
             console.log('[FDE] Tableau chargé depuis Supabase: '+r.data.investigation_html.length+' chars');
           }
         }
+        // ═══ FIX : TOUJOURS activer _tableauLoaded après vérification Supabase ═══
+        // Si Supabase a des données → on les a chargées ci-dessus
+        // Si Supabase n'a rien → c'est un nouveau dossier, OK pour sauvegarder
+        window._tableauLoaded=true;
         if(r.data && r.data.skel_type && !_activeSkelType){
           _activeSkelType=r.data.skel_type;
         }
@@ -7138,6 +7153,8 @@ function _restoreFromSupabase(d, onDone){
           if(cards.length>0) _lc=cards.length;
         }
         updateLogsVisites();
+        window._tableauLoaded=true;
+        console.log('[FDE] ✅ Tableau restauré depuis Supabase (restoreFromSupabase): '+contenus.tableauHtml.length+' chars');
       } else {
         // Pas de tableau HTML → créer les logements depuis la table logements
         _sbLoadLogements(d._sbId, function(logements){
