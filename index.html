@@ -1266,6 +1266,19 @@ function _initSupabase() {
   try {
     _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     console.log('[FDE] Supabase client initialisé');
+    // ═══ FIX : Auto-refresh JWT + détection expiration ═══
+    _sb.auth.onAuthStateChange(function(event, session) {
+      console.log('[FDE] Auth event:', event);
+      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+        if (event === 'SIGNED_OUT') {
+          _sbUser = null;
+          toast('⚠️ Session expirée — reconnexion nécessaire');
+        }
+      }
+      if (event === 'TOKEN_REFRESHED') {
+        console.log('[FDE] ✅ JWT rafraîchi automatiquement');
+      }
+    });
   } catch(e) {
     console.error('[FDE] Erreur init Supabase:', e);
     _sb = null;
@@ -1598,6 +1611,9 @@ function _sbSaveContenus() {
   var d = window._dossier;
   if (!_sb || !_sbUser || !d || !d._sbId || !_isValidUUID(d._sbId)) return;
 
+  // ═══ FIX : Vérifier que la session est encore valide avant de sauvegarder ═══
+  if (!window._sbSaveAuthOk) window._sbSaveAuthOk = true;
+
   // Capturer l'éditeur courant AVANT de sauvegarder
   var edInv = document.getElementById('editor-investi');
   if(edInv && _currentLogId) _investiContents[_currentLogId] = edInv.innerHTML;
@@ -1618,6 +1634,17 @@ function _sbSaveContenus() {
     .then(function(r) {
       if (r.error) {
         console.warn('[FDE] ❌ Erreur save contenu:', r.error.message);
+        // ═══ FIX : Détecter JWT expiré et prévenir l'utilisateur ═══
+        if(r.error.message && (r.error.message.indexOf('JWT')>=0 || r.error.message.indexOf('401')>=0 || r.error.message.indexOf('token')>=0 || r.error.message.indexOf('unauthorized')>=0)){
+          if(window._sbSaveAuthOk !== false){
+            window._sbSaveAuthOk = false;
+            toast('⚠️ Session expirée — tentative de reconnexion...');
+            _sb.auth.refreshSession().then(function(rr){
+              if(rr.error){ toast('❌ Reconnexion échouée — vos données sont sauvées localement'); }
+              else { window._sbSaveAuthOk = true; toast('✅ Reconnecté au serveur'); try{_sbSaveContenus();}catch(e){} }
+            });
+          }
+        }
         // Si l'intervention a été supprimée → arrêter de sauvegarder
         if(r.error.message.indexOf('foreign key')>=0 && d._sbId){
           console.log('[FDE] Intervention supprimée, arrêt des sauvegardes');
@@ -2238,16 +2265,27 @@ function goTo(pageId){
     // ═══ TOUJOURS charger le tableau de dégâts depuis Supabase ═══
     var _dd2=window._dossier;
     if(_dd2 && _dd2._sbId && _sb){
-      _sb.from('contenus').select('investigation_html,skel_type').eq('intervention_id',_dd2._sbId).eq('logement_id','_tableau').single()
+      _sb.from('contenus').select('investigation_html,skel_type,updated_at').eq('intervention_id',_dd2._sbId).eq('logement_id','_tableau').single()
       .then(function(r){
         if(r.data && r.data.investigation_html && r.data.investigation_html.length>500){
           var _dmgCont=document.getElementById('logements-container');
           if(_dmgCont){
-            _dmgCont.innerHTML=r.data.investigation_html;
-            var _rtCards=_dmgCont.querySelectorAll('.logement-card');
-            if(_rtCards.length>0) _lc=_rtCards.length;
-            updateLogsVisites();
-            console.log('[FDE] Tableau chargé depuis Supabase: '+r.data.investigation_html.length+' chars');
+            // ═══ FIX : Ne pas écraser si le DOM local est PLUS RICHE que Supabase ═══
+            // (= les sauvegardes Supabase ont échoué à cause du JWT expiré,
+            //  mais le local a les éditions récentes)
+            var _localLen = _dmgCont.innerHTML.length;
+            var _sbLen = r.data.investigation_html.length;
+            if(_localLen > _sbLen + 200 && window._tableauLoaded){
+              console.warn('[FDE] ⚠️ Tableau local PLUS GROS que Supabase ('+_localLen+' vs '+_sbLen+') — on garde le local et on force la sauvegarde');
+              // Forcer une sauvegarde vers Supabase pour rattraper
+              try{_sbSaveContenus();}catch(e){}
+            } else {
+              _dmgCont.innerHTML=r.data.investigation_html;
+              var _rtCards=_dmgCont.querySelectorAll('.logement-card');
+              if(_rtCards.length>0) _lc=_rtCards.length;
+              updateLogsVisites();
+              console.log('[FDE] Tableau chargé depuis Supabase: '+r.data.investigation_html.length+' chars');
+            }
           }
         }
         // ═══ FIX : TOUJOURS activer _tableauLoaded après vérification Supabase ═══
@@ -2628,6 +2666,25 @@ document.addEventListener('visibilitychange', function(){
   if(document.hidden){
     try{doSave();}catch(e){} try{_sbSaveContenus();}catch(e){} try{_sbSaveLogements();}catch(e){}
   } else {
+    // ═══ FIX : Rafraîchir le JWT quand l'app revient au premier plan ═══
+    if(_sb){
+      _sb.auth.getSession().then(function(r){
+        if(r.data && r.data.session){
+          console.log('[FDE] ✅ Session active au retour (expire: '+new Date(r.data.session.expires_at*1000).toLocaleTimeString()+')');
+          // Forcer un refresh si le token expire dans moins de 10 minutes
+          var expiresAt = r.data.session.expires_at * 1000;
+          if(expiresAt - Date.now() < 600000){
+            _sb.auth.refreshSession().then(function(rr){
+              if(rr.error) console.warn('[FDE] ⚠️ Échec refresh JWT:', rr.error.message);
+              else console.log('[FDE] ✅ JWT rafraîchi proactivement');
+            });
+          }
+        } else {
+          console.warn('[FDE] ⚠️ Pas de session Supabase au retour');
+          toast('⚠️ Session expirée — les sauvegardes serveur sont en pause');
+        }
+      });
+    }
     // ═══ PWA RESUME — sync avec Supabase quand l'app revient au premier plan ═══
     if(_sb && _sbUser){
       _sbLoadInterventions(function(sbDossiers){
@@ -4359,6 +4416,25 @@ function startAutoSave(){
   setInterval(function(){
     if(_lastSaveTime) updateSaveIndicator();
   }, 10000);
+  // ═══ FIX : Rafraîchir le JWT toutes les 30 minutes (expire au bout d'1h) ═══
+  setInterval(function(){
+    if(!_sb) return;
+    _sb.auth.getSession().then(function(r){
+      if(!r.data || !r.data.session) return;
+      var expiresAt = r.data.session.expires_at * 1000;
+      var remaining = expiresAt - Date.now();
+      if(remaining < 600000){ // < 10 min restantes
+        _sb.auth.refreshSession().then(function(rr){
+          if(rr.error){
+            console.warn('[FDE] ⚠️ Échec refresh JWT:', rr.error.message);
+            toast('⚠️ Session expirée — les sauvegardes serveur sont en pause');
+          } else {
+            console.log('[FDE] ✅ JWT rafraîchi (prochain refresh dans ~30min)');
+          }
+        });
+      }
+    });
+  }, 1800000); // 30 minutes
   // ═══ SYNC DASHBOARD — vérifier Supabase toutes les 60s (multi-appareil) ═══
   setInterval(function(){
     var activePage=document.querySelector('.page.active');
