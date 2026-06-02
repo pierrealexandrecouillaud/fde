@@ -1450,6 +1450,9 @@ function _sbUpdateIntervention(d, callback) {
   if (!_sb || !d._sbId) { if (callback) callback(null); return; }
   var row = _dossierToRow(d);
   delete row.id; delete row.user_id; // Ne pas écraser id et user_id
+  // ═══ FIX : Ne PAS écraser le statut via l'auto-save (le statut ne doit changer
+  // que via _sbUpdateStatus quand l'utilisateur clique explicitement) ═══
+  delete row.status;
   _sb.from('interventions').update(row).eq('id', d._sbId)
     .then(function(result) {
       if (result.error) {
@@ -2209,10 +2212,12 @@ function goTo(pageId){
       try{_sbSaveLogements();}catch(e){}
     }catch(e){}
   }, 100);
-  // Mise à jour du statut de l'intervention
+  // Mise à jour du statut de l'intervention (seulement créé → en cours, jamais rétrograder terminé)
   if(window._dossier && (pageId==='dommage'||pageId==='tableau'||pageId==='investigation'||pageId==='conclusion')){
-    if(window._dossier._status==='créé') window._dossier._status='en cours';
-    _updateDashboardStatus(window._dossier._uid, window._dossier._status);
+    if(window._dossier._status==='créé'){
+      window._dossier._status='en cours';
+      _updateDashboardStatus(window._dossier._uid, window._dossier._status);
+    }
   }
   updateGlobalNav(pageId);
   // ═══ SUPABASE — charger façade + tableau depuis le serveur ═══
