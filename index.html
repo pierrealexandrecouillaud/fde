@@ -2538,7 +2538,7 @@ document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
       restoreSession();
       var vc=document.getElementById('version-cell');
-      if(vc){var n=new Date();vc.textContent='v3.5 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+      if(vc){var n=new Date();vc.textContent='v3.6 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
     },300);
   }
 
@@ -3240,16 +3240,19 @@ function _loadInvestiFromSupabase(curD){
       });
       // Charger UNIQUEMENT le contenu du logement ACTUEL dans l'éditeur
       var activeLog = _currentLogId;
+      // ═══ FIX : si pas de logement actif, prendre le premier qui a du contenu ═══
+      if(!activeLog){
+        activeLog = Object.keys(contenus.investiContents).find(function(k){
+          return contenus.investiContents[k] && contenus.investiContents[k].length>30;
+        }) || Object.keys(contenus.investiContents)[0] || null;
+        _currentLogId = activeLog;
+      }
       if(activeLog && _investiContents[activeLog] && _investiContents[activeLog].length>30){
         if(!edI.innerHTML || edI.innerHTML.length<50 || edI.innerHTML.indexOf('lectionnez un logement')>=0 || edI.innerHTML.indexOf('Cochez')>=0 || edI.innerHTML.indexOf('Chargement')>=0){
           console.log('[FDE] ✅ Investigation '+activeLog+' → éditeur: '+_investiContents[activeLog].length+' chars');
           edI.innerHTML=_investiContents[activeLog];
           _fixInvestiImages(edI);
         }
-      }
-      if(!activeLog){
-        // Si pas de logement actif, prendre le premier
-        _currentLogId = Object.keys(contenus.investiContents)[0] || _currentLogId;
       }
       _fixInvestiImages(edI);
       // Mettre à jour le label
