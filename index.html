@@ -2538,7 +2538,7 @@ document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
       restoreSession();
       var vc=document.getElementById('version-cell');
-      if(vc){var n=new Date();vc.textContent='v3.6 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+      if(vc){var n=new Date();vc.textContent='v3.7 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
     },300);
   }
 
@@ -5280,8 +5280,8 @@ function _sbGeneratePDF(){
       removeOverlay();
       console.error('[FDE] Erreur PDF serveur:',err);
       toast('⚠️ Erreur serveur: '+err.message);
-      if(confirm('Le serveur n\'a pas pu générer le PDF.\n\nVoulez-vous essayer en local (mode allégé, sans photos investigation) ?')){
-        downloadPDF();
+      if(confirm('Le serveur n\'a pas pu générer le PDF.\n\nVoulez-vous essayer en local ? (fichier plus lourd, peut échouer si beaucoup de photos)')){
+        genererPDF();
       }
     });
   });
@@ -5293,12 +5293,14 @@ function _sbGeneratePDF(){
 var _pdfGenerating=false;
 var _pdfGenTimer=null;
 function downloadPDF(){
-  var isIpad = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  if(isIpad){
-    console.log('[FDE] PDF serveur (iPad)');
+  // ═══ TOUJOURS utiliser la génération serveur (PDF léger + pas de limite mémoire) ═══
+  // Le serveur compresse les photos (4:3, qualité 85). La génération locale reste
+  // un fallback uniquement si Supabase n'est pas disponible (mode hors-ligne).
+  if(_sb && _sbUser && window._dossier && window._dossier._sbId){
+    console.log('[FDE] PDF serveur');
     _sbGeneratePDF();
   } else {
-    console.log('[FDE] PDF client (Mac)');
+    console.log('[FDE] PDF client (fallback hors-ligne)');
     genererPDF();
   }
 }
