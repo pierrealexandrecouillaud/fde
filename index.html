@@ -859,9 +859,6 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
       <div class="editor-area" contenteditable="true" id="editor-conclusion" style="min-height:380px;color:#000000">
 <p><strong>1. Synthèse de la recherche de fuite technique</strong></p>
 <br>
-<p>- Nous avons constaté une absence de relevé d'étanchéité en bout de couvertine sous la toiture tuile au-dessus du mur maçonné.</p>
-<p>- Nous avons constaté une déformation de la couvertine qui achemine l'eau vers le dessus du mur sous la toiture tuile.</p>
-<br>
 <p><strong>2. Remarque et/ou constatation</strong></p>
 <p>*RAS = rien à signaler.</p>
       </div>
@@ -1659,8 +1656,10 @@ function _sbSaveContenus() {
   });
 
   // 2. Sauvegarder la conclusion
+  // ═══ GARDE-FOU : ne pas sauvegarder si le dossier n'est pas encore chargé
+  // (évite d'écrire la conclusion de l'ancien dossier dans le nouveau) ═══
   var edC = document.getElementById('editor-conclusion');
-  if (edC && edC.innerHTML && edC.innerHTML.length > 10) {
+  if (window._tableauLoaded && edC && edC.innerHTML && edC.innerHTML.length > 10) {
     _sb.from('contenus').upsert({
       intervention_id: d._sbId,
       logement_id: '_conclusion',
@@ -2538,7 +2537,7 @@ document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
       restoreSession();
       var vc=document.getElementById('version-cell');
-      if(vc){var n=new Date();vc.textContent='v3.7 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+      if(vc){var n=new Date();vc.textContent='v3.8 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
     },300);
   }
 
