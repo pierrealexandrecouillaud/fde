@@ -2537,7 +2537,7 @@ document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
       restoreSession();
       var vc=document.getElementById('version-cell');
-      if(vc){var n=new Date();vc.textContent='v3.8 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+      if(vc){var n=new Date();vc.textContent='v3.9 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
     },300);
   }
 
@@ -3515,9 +3515,8 @@ function addPhotoToSupport(sid){
   inp.onchange=function(){
     var files=Array.from(this.files);
     if(!files.length) return;
-    // Garder l'ordre natif du sélecteur iOS
-    sortFilesByExifDate(files, function(sorted){
-      files = sorted;
+    // ═══ TABLEAU DE DÉGÂTS : garder l'ordre de SÉLECTION (pas de tri par date) ═══
+    {
       var idx=0;
     function processNext(){
       if(idx>=files.length){
@@ -3564,7 +3563,7 @@ function addPhotoToSupport(sid){
       rd.readAsDataURL(file);
     }
     processNext();
-    }); // fin sortFilesByExifDate
+    } // fin ordre sélection
   };
   inp.value='';
   document.body.appendChild(inp);
