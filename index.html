@@ -321,6 +321,14 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
   font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;
   padding:0;font-weight:700;min-height:unset;
 }
+.photo-move{
+  position:absolute;bottom:0;background:rgba(30,41,59,.85);color:white;border:none;
+  width:26px;height:22px;font-size:13px;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;padding:0;font-weight:700;min-height:unset;
+}
+.photo-move.mv-left{left:0;border-radius:0 6px 0 0;}
+.photo-move.mv-right{left:26px;border-radius:0 6px 0 0;}
+.photo-move:active{background:var(--orange);}
 .btn-blue-sm{
   background:var(--blue);color:white;border:none;border-radius:6px;
   padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;
@@ -2537,7 +2545,7 @@ document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
       restoreSession();
       var vc=document.getElementById('version-cell');
-      if(vc){var n=new Date();vc.textContent='v3.9 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+      if(vc){var n=new Date();vc.textContent='v4.0 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
     },300);
   }
 
@@ -3543,8 +3551,11 @@ function addPhotoToSupport(sid){
           var im=document.createElement('img'); im.src=compressed; th.appendChild(im);
           var nb=document.createElement('span'); nb.className='photo-num'; nb.textContent=num; th.appendChild(nb);
           var db=document.createElement('button'); db.className='photo-del'; db.textContent='x';
-          db.onclick=function(){ th.remove(); renumberPhotos(); };
           th.appendChild(db);
+          var mvL=document.createElement('button'); mvL.className='photo-move mv-left'; mvL.textContent='\u25c0'; mvL.title='Déplacer à gauche';
+          th.appendChild(mvL);
+          var mvR=document.createElement('button'); mvR.className='photo-move mv-right'; mvR.textContent='\u25b6'; mvR.title='Déplacer à droite';
+          th.appendChild(mvR);
           wrap.appendChild(th);
           renumberPhotos();
           // ═══ SUPABASE — Upload en arrière-plan ═══
@@ -3633,6 +3644,38 @@ function renumberPhotos(){
   document.querySelectorAll('.galerie-num').forEach(function(el,i){ el.textContent='Photo '+(i+1); });
   _phc=n;
 }
+// ═══ Déplacer une photo gauche/droite dans le tableau de dégâts ═══
+function _movePhotoThumb(btn, dir){
+  var th = btn.closest('.photo-thumb'); if(!th) return;
+  var parent = th.parentElement; if(!parent) return;
+  if(dir<0){
+    var prev = th.previousElementSibling;
+    if(prev && prev.classList.contains('photo-thumb')) parent.insertBefore(th, prev);
+  } else {
+    var next = th.nextElementSibling;
+    if(next && next.classList.contains('photo-thumb')) parent.insertBefore(next, th);
+  }
+  renumberPhotos();
+  try{ autoSave(); }catch(e){}
+  setTimeout(function(){ try{_sbSaveContenus();}catch(e){} }, 500);
+}
+// ═══ Délégation : flèches déplacer photos (marche même après rechargement Supabase) ═══
+document.addEventListener('click', function(e){
+  var mvBtn = e.target.closest && e.target.closest('.photo-move');
+  if(mvBtn){
+    e.preventDefault(); e.stopPropagation();
+    _movePhotoThumb(mvBtn, mvBtn.classList.contains('mv-left') ? -1 : 1);
+    return;
+  }
+  // Bouton supprimer (délégation de secours si le onclick a été perdu après rechargement)
+  var delBtn = e.target.closest && e.target.closest('.photo-del');
+  if(delBtn && !delBtn.onclick){
+    e.preventDefault(); e.stopPropagation();
+    var th = delBtn.closest('.photo-thumb');
+    if(th){ th.remove(); renumberPhotos(); try{autoSave();}catch(err){} setTimeout(function(){ try{_sbSaveContenus();}catch(err2){} }, 500); }
+    return;
+  }
+}, true);
 
 /* ════════════════════════════════════════
    ÉDITEUR RICHE
