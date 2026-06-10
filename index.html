@@ -2545,7 +2545,7 @@ document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
       restoreSession();
       var vc=document.getElementById('version-cell');
-      if(vc){var n=new Date();vc.textContent='v4.0 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+      if(vc){var n=new Date();vc.textContent='v4.1 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
     },300);
   }
 
@@ -2922,7 +2922,7 @@ function toggleSkelExclusif(btn, type){
     var _aptPart=(log.apt||log.etage)?(' appartement'+(log.apt?' '+log.apt:'')):'';
     var _etaLC=log.etage?(log.etage.charAt(0).toLowerCase()+log.etage.slice(1)):'';
     var _etaPart=_etaLC?(' au '+_etaLC):'';
-    var titre=log?('<p><strong>Intervention de recherche de fuite '+_nom+_aptPart+_etaPart+'</strong></p><br>'):'';
+    var titre=log?('<p><strong>Intervention de recherche de fuite '+_nom+_aptPart+_etaPart+'.</strong></p><br>'):'';
     edI.innerHTML=titre+SKEL_INVESTI[type];
     _investiContents[_currentLogId]=edI.innerHTML;
   }
@@ -3001,7 +3001,7 @@ function addLogement(){
       '<div class="lf"><label>Logement</label><input class="inp-s" style="width:82px" placeholder="Apt. 3A" id="'+id+'-apt"></div>'+
       '<div class="lf"><label>Étage</label>'+
       '<div style="position:relative">'+
-        '<input class="inp-s" style="width:155px;font-size:14px" placeholder="Rez-de-chaussée" '+
+        '<input class="inp-s" style="width:155px;font-size:14px" placeholder="rez-de-chaussée" '+
         'id="'+id+'-eta" autocomplete="off" oninput="showEtageSugg(this)" onfocus="showEtageSugg(this)">'+
         '<div class="piece-sugg" style="display:none;position:absolute;top:100%;left:0;'+
           'width:200px;background:white;border:1.5px solid var(--orange);border-radius:0 0 8px 8px;'+
@@ -3306,7 +3306,7 @@ function _loadInvestiFromSupabase(curD){
 }
 
 function _loadEmptySkeleton(ed, label){
-  var titreLog='<p><strong>Intervention de recherche de fuite '+label+'</strong></p><br>';
+  var titreLog='<p><strong>Intervention de recherche de fuite '+label+'.</strong></p><br>';
   var corps;
   if(_activeSkelType && SKEL_INVESTI[_activeSkelType]){
     corps = SKEL_INVESTI[_activeSkelType];
@@ -3364,7 +3364,7 @@ var PIECES_LIST=['Cuisine','Salon','Séjour','Salon-cuisine','Salle de bain','Sa
   'WC','Chambre','Chambre 1','Chambre 2','Chambre 3','Chambre parentale','Chambre enfant',
   'Cage d\'escalier','Couloir','Entrée'];
 
-var ETAGES_LIST=['Rez-de-chaussée','1er étage','2ème étage','3ème étage','4ème étage','5ème étage','6ème étage','7ème étage','8ème étage','9ème étage','10ème étage','11ème étage'];
+var ETAGES_LIST=['rez-de-chaussée','1er étage','2ème étage','3ème étage','4ème étage','5ème étage','6ème étage','7ème étage','8ème étage','9ème étage','10ème étage','11ème étage'];
 
 var SUPPORTS_LIST=['Cloison placoplâtre + peinture','Cloisons placoplâtre + peinture','Cloison brique + plâtre + peinture','Cloisons brique + plâtre + peinture','Cloison brique + peinture','Cloisons brique + peinture','Mur béton','Murs béton','Mur béton + peinture','Murs béton + peinture','Plafond béton','Plafond béton + peinture','Plafond placoplâtre + peinture','Plafond bois','Plafond bois + peinture','Sol béton','Sol carrelage','Sol parquet bois','Sol PVC'];
 
@@ -3731,8 +3731,11 @@ document.addEventListener('DOMContentLoaded', function(){
           // Garder la couleur si présente
           var color = '';
           var st = child.getAttribute && child.getAttribute('style');
-          if(st){ var m = st.match(/color\s*:\s*([^;]+)/i); if(m) color = m[1].trim(); }
+          if(st){ var m = st.match(/(?:^|[;\s])color\s*:\s*([^;]+)/i); if(m) color = m[1].trim(); }
           if(!color && child.nodeName === 'FONT' && child.getAttribute('color')) color = child.getAttribute('color');
+          // Ignorer les couleurs blanches/transparentes (sinon texte invisible)
+          var _cl = color.toLowerCase().replace(/\s/g,'');
+          if(_cl==='white'||_cl==='#fff'||_cl==='#ffffff'||_cl==='transparent'||_cl==='rgb(255,255,255)'||_cl.indexOf('rgba(255,255,255')>=0) color='';
           var inner = walk(child);
           if(!inner.trim() && inner.indexOf('<br>') < 0) return;
           var bold = (child.nodeName === 'STRONG' || child.nodeName === 'B');
@@ -5303,16 +5306,37 @@ function _sbGeneratePDF(){
       removeOverlay();
       if(data.success&&data.pdf_url){
         toast('✅ PDF généré ! ('+data.size_mb+' MB)');
+        var _niceName=(data.filename||'Rapport d\'intervention.pdf');
         var modal=document.createElement('div');
         modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:center;justify-content:center;';
-        modal.innerHTML='<div style="background:white;border-radius:16px;padding:32px;text-align:center;max-width:300px;">'+
+        modal.innerHTML='<div style="background:white;border-radius:16px;padding:32px;text-align:center;max-width:320px;">'+
           '<div style="font-size:40px;margin-bottom:12px">✅</div>'+
           '<div style="font-size:16px;font-weight:700;margin-bottom:4px">PDF prêt !</div>'+
           '<div style="color:#64748b;font-size:13px;margin-bottom:20px">'+data.size_mb+' MB</div>'+
-          '<a href="'+data.pdf_url+'" target="_blank" download="'+(data.filename||'rapport.pdf')+'" style="display:block;background:#F97316;color:white;padding:14px;border-radius:10px;font-weight:700;text-decoration:none;font-size:15px">Ouvrir le PDF</a>'+
+          '<button id="pdf-dl-btn" style="display:block;width:100%;background:#F97316;color:white;padding:14px;border-radius:10px;font-weight:700;border:none;font-size:15px;cursor:pointer;margin-bottom:10px">⬇️ Télécharger</button>'+
+          '<a href="'+data.pdf_url+'" target="_blank" style="display:block;color:#64748b;font-size:13px;text-decoration:none">Ouvrir dans un onglet</a>'+
           '</div>';
         modal.onclick=function(e){ if(e.target===modal) modal.remove(); };
         document.body.appendChild(modal);
+        var dlBtn=document.getElementById('pdf-dl-btn');
+        if(dlBtn){
+          dlBtn.onclick=function(){
+            dlBtn.textContent='⏳ Téléchargement...';
+            fetch(data.pdf_url).then(function(r){return r.blob();}).then(function(blob){
+              var url=URL.createObjectURL(blob);
+              var a=document.createElement('a');
+              a.href=url; a.download=_niceName;
+              document.body.appendChild(a); a.click();
+              setTimeout(function(){ URL.revokeObjectURL(url); if(a.parentNode) a.parentNode.removeChild(a); }, 1000);
+              dlBtn.textContent='✅ Téléchargé';
+              setTimeout(function(){ modal.remove(); }, 800);
+            }).catch(function(){
+              // Fallback : ouvrir directement
+              window.open(data.pdf_url,'_blank');
+              dlBtn.textContent='⬇️ Télécharger';
+            });
+          };
+        }
       } else {
         toast('⚠️ '+(data.error||'Erreur inconnue'));
       }
