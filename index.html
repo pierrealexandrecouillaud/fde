@@ -1664,10 +1664,10 @@ function _sbSaveContenus() {
   });
 
   // 2. Sauvegarder la conclusion
-  // ═══ GARDE-FOU : ne pas sauvegarder si le dossier n'est pas encore chargé
-  // (évite d'écrire la conclusion de l'ancien dossier dans le nouveau) ═══
+  // ═══ GARDE-FOU : ne sauvegarder que si la conclusion a du vrai contenu
+  // (jamais le contenu par défaut, sinon il écrase la vraie conclusion sur le serveur) ═══
   var edC = document.getElementById('editor-conclusion');
-  if (window._tableauLoaded && edC && edC.innerHTML && edC.innerHTML.length > 10) {
+  if (edC && edC.innerHTML && !_isPlaceholderConclusion(edC.innerHTML)) {
     _sb.from('contenus').upsert({
       intervention_id: d._sbId,
       logement_id: '_conclusion',
@@ -2337,6 +2337,24 @@ function goTo(pageId){
   }
   if(pageId==='conclusion'){
     if(!_sharedImages.length) _recoverSharedImages();
+    // ═══ Charger la conclusion depuis Supabase si l'éditeur n'a que le contenu par défaut ═══
+    var _curDC=window._dossier;
+    if(_sb && _sbUser && _curDC && _curDC._sbId && _isValidUUID(_curDC._sbId)){
+      var _edConcl=document.getElementById('editor-conclusion');
+      if(_edConcl && _isPlaceholderConclusion(_edConcl.innerHTML)){
+        _sb.from('contenus').select('conclusion_html,skel_type').eq('intervention_id',_curDC._sbId).eq('logement_id','_conclusion').single()
+        .then(function(r){
+          if(r.data && r.data.conclusion_html && !_isPlaceholderConclusion(r.data.conclusion_html)){
+            var _ed2=document.getElementById('editor-conclusion');
+            if(_ed2 && _isPlaceholderConclusion(_ed2.innerHTML)){
+              _ed2.innerHTML=r.data.conclusion_html;
+              console.log('[FDE] ✅ Conclusion chargée depuis Supabase: '+r.data.conclusion_html.length+' chars');
+            }
+            if(r.data.skel_type && !_activeSkelType) _activeSkelType=r.data.skel_type;
+          }
+        });
+      }
+    }
   }
   if(pageId==='tableau'){
     // Recharger les photos du tableau progressivement
@@ -2545,7 +2563,7 @@ document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
       restoreSession();
       var vc=document.getElementById('version-cell');
-      if(vc){var n=new Date();vc.textContent='v4.1 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+      if(vc){var n=new Date();vc.textContent='v4.2 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
     },300);
   }
 
@@ -3219,6 +3237,21 @@ function _refreshLogementsFromSupabase(d){
   });
 }
 
+// ═══ Détecte si la conclusion affichée est vide ou le contenu par défaut ═══
+// (permet de la remplacer par la vraie conclusion venant de Supabase)
+function _isPlaceholderConclusion(html){
+  if(!html) return true;
+  var txt=html.replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim();
+  if(txt.length<25) return true;
+  // Contenu par défaut : "1. Synthèse... 2. Remarque... *RAS = rien à signaler."
+  var noSpace=txt.replace(/\s/g,'').toLowerCase();
+  var defaultNoSpace='1.synthèsedelarecherchedefuitetechnique2.remarqueet/ouconstatation*ras=rienàsignaler.'.replace(/\s/g,'');
+  if(noSpace===defaultNoSpace) return true;
+  // Tolérance : si ça commence par le titre par défaut et finit par RAS sans rien d'autre de substantiel
+  if(/^1\.\s*synth.*remarque.*ras\s*=\s*rien/i.test(txt) && txt.length<110) return true;
+  return false;
+}
+
 // ═══ Charger investigation depuis Supabase et afficher ═══
 var _investiLoadVersion=0;
 function _loadInvestiFromSupabase(curD){
@@ -3232,7 +3265,7 @@ function _loadInvestiFromSupabase(curD){
     // Conclusion
     if(contenus && contenus.conclusion){
       var edC=document.getElementById('editor-conclusion');
-      if(edC && (!edC.innerHTML || edC.innerHTML.length<30)) edC.innerHTML=contenus.conclusion;
+      if(edC && _isPlaceholderConclusion(edC.innerHTML)) edC.innerHTML=contenus.conclusion;
     }
     if(contenus && contenus.skelType) _activeSkelType=contenus.skelType;
     
@@ -4845,7 +4878,7 @@ function restoreSession(){
             }
             if (contenus.conclusion) {
               var edC = document.getElementById('editor-conclusion');
-              if (edC && (!edC.innerHTML || edC.innerHTML.length < 20)) {
+              if (edC && _isPlaceholderConclusion(edC.innerHTML)) {
                 edC.innerHTML = contenus.conclusion;
               }
             }
