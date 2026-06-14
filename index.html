@@ -1627,47 +1627,49 @@ function _sbSaveContenus() {
   if(edInv && _currentLogId) _investiContents[_currentLogId] = edInv.innerHTML;
 
   // 1. Sauvegarder les contenus investigation par logement
-  // PAS de sanitisation pour Supabase — le serveur gère les gros contenus (base64 photos)
-  // La sanitisation ne sert que pour IDB/localStorage (5MB max)
-  Object.keys(_investiContents).forEach(function(logId) {
-    var html = _investiContents[logId] || '';
-    if (!html || html.length < 10) return;
-    console.log('[FDE] Saving contenu: logId='+logId+' len='+html.length+' sbId='+d._sbId.substring(0,8));
-    _sb.from('contenus').upsert({
-      intervention_id: d._sbId,
-      logement_id: logId,
-      investigation_html: html,
-      skel_type: _activeSkelType || ''
-    }, { onConflict: 'intervention_id,logement_id' })
-    .then(function(r) {
-      if (r.error) {
-        console.warn('[FDE] ❌ Erreur save contenu:', r.error.message);
-        // ═══ FIX : Détecter JWT expiré et prévenir l'utilisateur ═══
-        if(r.error.message && (r.error.message.indexOf('JWT')>=0 || r.error.message.indexOf('401')>=0 || r.error.message.indexOf('token')>=0 || r.error.message.indexOf('unauthorized')>=0)){
-          if(window._sbSaveAuthOk !== false){
-            window._sbSaveAuthOk = false;
-            toast('⚠️ Session expirée — tentative de reconnexion...');
-            _sb.auth.refreshSession().then(function(rr){
-              if(rr.error){ toast('❌ Reconnexion échouée — vos données sont sauvées localement'); }
-              else { window._sbSaveAuthOk = true; toast('✅ Reconnecté au serveur'); try{_sbSaveContenus();}catch(e){} }
-            });
+  // ═══ GARDE-FOU : ne sauvegarder que si l'utilisateur a modifié l'investigation sur cet appareil
+  // (évite d'écraser le travail d'un autre appareil avec du contenu juste chargé) ═══
+  if(window._investiDirty){
+    Object.keys(_investiContents).forEach(function(logId) {
+      var html = _investiContents[logId] || '';
+      if (!html || html.length < 10) return;
+      console.log('[FDE] Saving contenu: logId='+logId+' len='+html.length+' sbId='+d._sbId.substring(0,8));
+      _sb.from('contenus').upsert({
+        intervention_id: d._sbId,
+        logement_id: logId,
+        investigation_html: html,
+        skel_type: _activeSkelType || ''
+      }, { onConflict: 'intervention_id,logement_id' })
+      .then(function(r) {
+        if (r.error) {
+          console.warn('[FDE] ❌ Erreur save contenu:', r.error.message);
+          // ═══ FIX : Détecter JWT expiré et prévenir l'utilisateur ═══
+          if(r.error.message && (r.error.message.indexOf('JWT')>=0 || r.error.message.indexOf('401')>=0 || r.error.message.indexOf('token')>=0 || r.error.message.indexOf('unauthorized')>=0)){
+            if(window._sbSaveAuthOk !== false){
+              window._sbSaveAuthOk = false;
+              toast('⚠️ Session expirée — tentative de reconnexion...');
+              _sb.auth.refreshSession().then(function(rr){
+                if(rr.error){ toast('❌ Reconnexion échouée — vos données sont sauvées localement'); }
+                else { window._sbSaveAuthOk = true; toast('✅ Reconnecté au serveur'); try{_sbSaveContenus();}catch(e){} }
+              });
+            }
+          }
+          // Si l'intervention a été supprimée → arrêter de sauvegarder
+          if(r.error.message.indexOf('foreign key')>=0 && d._sbId){
+            console.log('[FDE] Intervention supprimée, arrêt des sauvegardes');
+            d._sbId=null; if(window._dossier) window._dossier._sbId=null;
           }
         }
-        // Si l'intervention a été supprimée → arrêter de sauvegarder
-        if(r.error.message.indexOf('foreign key')>=0 && d._sbId){
-          console.log('[FDE] Intervention supprimée, arrêt des sauvegardes');
-          d._sbId=null; if(window._dossier) window._dossier._sbId=null;
-        }
-      }
-      else console.log('[FDE] ✅ Contenu sauvé: '+logId);
+        else console.log('[FDE] ✅ Contenu sauvé: '+logId);
+      });
     });
-  });
+  }
 
   // 2. Sauvegarder la conclusion
   // ═══ GARDE-FOU : ne sauvegarder que si la conclusion a du vrai contenu
   // (jamais le contenu par défaut, sinon il écrase la vraie conclusion sur le serveur) ═══
   var edC = document.getElementById('editor-conclusion');
-  if (edC && edC.innerHTML && !_isPlaceholderConclusion(edC.innerHTML)) {
+  if (edC && edC.innerHTML && window._conclusionDirty && !_isPlaceholderConclusion(edC.innerHTML)) {
     console.log('[FDE] Saving conclusion: len='+edC.innerHTML.length+' sbId='+d._sbId.substring(0,8));
     _sb.from('contenus').upsert({
       intervention_id: d._sbId,
@@ -1685,8 +1687,8 @@ function _sbSaveContenus() {
         console.log('[FDE] ✅ Conclusion sauvée');
       }
     });
-  } else {
-    console.log('[FDE] ⏭️ Conclusion skip (vide ou contenu par défaut)');
+  } else if(!window._conclusionDirty){
+    // pas de modif utilisateur → ne pas réécrire (évite d'écraser le travail d'un autre appareil)
   }
 
   // 3. Sauvegarder le tableau de dégâts
@@ -2573,7 +2575,7 @@ document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
       restoreSession();
       var vc=document.getElementById('version-cell');
-      if(vc){var n=new Date();vc.textContent='v4.3 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+      if(vc){var n=new Date();vc.textContent='v4.4 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
     },300);
   }
 
@@ -2942,7 +2944,7 @@ function toggleSkelExclusif(btn, type){
   btn.classList.add('active');
   _activeSkelType=type;
   var edC=document.getElementById('editor-conclusion');
-  if(edC && SKEL_CONCLUSION[type]){ var _cc=SKEL_CONCLUSION[type]; edC.innerHTML=_cc; }
+  if(edC && SKEL_CONCLUSION[type]){ var _cc=SKEL_CONCLUSION[type]; edC.innerHTML=_cc; window._conclusionDirty=true; }
   var edI=document.getElementById('editor-investi');
   if(edI && _currentLogId && SKEL_INVESTI[type]){
     var log=_logsVisites&&_logsVisites.find(function(l){return l.id===_currentLogId;});
@@ -2953,6 +2955,7 @@ function toggleSkelExclusif(btn, type){
     var titre=log?('<p><strong>Intervention de recherche de fuite '+_nom+_aptPart+_etaPart+'.</strong></p><br>'):'';
     edI.innerHTML=titre+SKEL_INVESTI[type];
     _investiContents[_currentLogId]=edI.innerHTML;
+    window._investiDirty=true;
   }
   toast('Type : '+btn.textContent.trim());
 }
@@ -3804,6 +3807,11 @@ document.addEventListener('DOMContentLoaded', function(){
     ed.addEventListener('touchend', function(){ setTimeout(saveCursorPos, 50); });
     ed.addEventListener('mouseup', function(){ setTimeout(saveCursorPos, 50); });
     ed.addEventListener('keyup', function(){ saveCursorPos(); });
+    // ═══ Marquer comme "modifié par l'utilisateur" (pour ne sauvegarder que les vraies modifs) ═══
+    ed.addEventListener('input', function(){
+      if(id==='editor-conclusion') window._conclusionDirty=true;
+      else if(id==='editor-investi') window._investiDirty=true;
+    });
     // ═══ Nettoyage copier-coller : garder texte + couleurs + gras/souligné + sauts de ligne ═══
     ed.addEventListener('paste', function(e){
       e.preventDefault();
@@ -3916,6 +3924,8 @@ function insertPhrase(editorId,text){
     ed.appendChild(p);
   }
   _savedRange=null;
+  // Marquer comme modifié (insertion DOM ne déclenche pas l'événement input)
+  if(edId==='editor-investi') window._investiDirty=true; else window._conclusionDirty=true;
   toast('Phrase insérée ✓');
   autoSave();
 }
@@ -4209,6 +4219,8 @@ function _doInsertImg(ed, img){
     ed.appendChild(img);
   }
   setTimeout(function(){ img.scrollIntoView({behavior:'smooth', block:'center'}); }, 100);
+  // Marquer comme modifié (insertion DOM ne déclenche pas input)
+  if(ed.id==='editor-conclusion') window._conclusionDirty=true; else window._investiDirty=true;
   toast('Image insérée ✓');
   autoSave();
 }
@@ -7291,7 +7303,7 @@ function techCreateInterv(isUpdate){
         return;
       }
       // Intervention différente → charger ses données
-      try{saveCurrentInvesti();_saveCurrentRapportSlot();_sbSaveContenus();}catch(e){} _sharedImages=[]; _sharedImgPanelsDirty=true; var _fpi=document.getElementById("fp-images-i-list");if(_fpi)_fpi.innerHTML=""; var _fpc=document.getElementById("fp-images-c-list");if(_fpc)_fpc.innerHTML=""; window._tableauLoaded=false; window._tableauFromServer=false; document.querySelectorAll(".facade-img").forEach(function(img){ img.src=""; img.style.display="none"; img.removeAttribute("data-storage-url"); });
+      try{saveCurrentInvesti();_saveCurrentRapportSlot();_sbSaveContenus();}catch(e){} _sharedImages=[]; _sharedImgPanelsDirty=true; var _fpi=document.getElementById("fp-images-i-list");if(_fpi)_fpi.innerHTML=""; var _fpc=document.getElementById("fp-images-c-list");if(_fpc)_fpc.innerHTML=""; window._tableauLoaded=false; window._tableauFromServer=false; window._conclusionDirty=false; window._investiDirty=false; document.querySelectorAll(".facade-img").forEach(function(img){ img.src=""; img.style.display="none"; img.removeAttribute("data-storage-url"); });
       window._dossier=dd;
       if(!dd._uid || !_loadRapportSlot(dd._uid)){
         if(dd._sbId && _sb){ _restoreFromSupabase(dd, function(){ _syncAllCadres(); }); }
