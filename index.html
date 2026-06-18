@@ -2575,7 +2575,7 @@ document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
       restoreSession();
       var vc=document.getElementById('version-cell');
-      if(vc){var n=new Date();vc.textContent='v4.8 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+      if(vc){var n=new Date();vc.textContent='v4.9 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
     },300);
   }
 
@@ -3726,24 +3726,33 @@ document.addEventListener('click', function(e){
    ÉDITEUR RICHE
 ════════════════════════════════════════ */
 function execCmd(cmd,val){ document.execCommand(cmd,false,val||null); }
-// Applique le format "titre orange centré" (identique aux titres de squelette)
-function _applyTitre(color, size){
-  document.execCommand('justifyCenter');
-  document.execCommand('foreColor', false, color);
-  if(!document.queryCommandState('bold')) document.execCommand('bold');
-  if(!document.queryCommandState('underline')) document.execCommand('underline');
-  document.execCommand('fontSize', false, size);
-  // marquer comme modifié
+// Applique le format titre en remplaçant la ligne par la structure EXACTE des squelettes
+function _applyTitre(color, sizePx, centered){
   var sel=window.getSelection();
-  if(sel && sel.anchorNode){
-    var n=sel.anchorNode; while(n && n.id!=='editor-conclusion' && n.id!=='editor-investi') n=n.parentNode;
-    if(n && n.id==='editor-conclusion') window._conclusionDirty=true;
-    else if(n && n.id==='editor-investi') window._investiDirty=true;
-  }
+  if(!sel || !sel.rangeCount){ toast('Sélectionne d\'abord la ligne du titre'); return; }
+  var range=sel.getRangeAt(0);
+  var node=range.startContainer;
+  if(node.nodeType===3) node=node.parentNode;
+  var editorEl=node; while(editorEl && editorEl.id!=='editor-investi' && editorEl.id!=='editor-conclusion') editorEl=editorEl.parentNode;
+  if(!editorEl){ toast('Place le curseur dans l\'éditeur'); return; }
+  var block=node;
+  while(block && block.parentNode && block.parentNode!==editorEl) block=block.parentNode;
+  if(!block || block===editorEl){ toast('Sélectionne la ligne du titre'); return; }
+  var selText=sel.toString().trim();
+  var text=selText || (block.textContent||'').trim();
+  if(!text){ toast('Ligne vide'); return; }
+  var esc=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  var p=document.createElement('p');
+  if(centered) p.style.textAlign='center';
+  p.innerHTML='<strong><u><span style="color:'+color+';font-size:'+sizePx+'px">'+esc+'</span></u></strong>';
+  block.parentNode.replaceChild(p, block);
+  if(editorEl.id==='editor-conclusion'){ window._conclusionDirty=true; }
+  else if(editorEl.id==='editor-investi'){ window._investiDirty=true; if(_currentLogId) _investiContents[_currentLogId]=editorEl.innerHTML; }
   toast('Titre appliqué ✓');
+  try{ autoSave(); }catch(e){}
 }
-function _titreOrange(){ _applyTitre('#ff8900','4'); }
-function _titreBleu(){ _applyTitre('#009fe3','3'); }
+function _titreOrange(){ _applyTitre('#ff8900','18', true); }
+function _titreBleu(){ _applyTitre('#009fe3','15', false); }
 function applyBlockBg(color){
   var sel=window.getSelection();
   if(sel && sel.rangeCount>0){
