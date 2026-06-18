@@ -2575,7 +2575,7 @@ document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
       restoreSession();
       var vc=document.getElementById('version-cell');
-      if(vc){var n=new Date();vc.textContent='v4.5 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+      if(vc){var n=new Date();vc.textContent='v4.7 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
     },300);
   }
 
@@ -3773,27 +3773,41 @@ document.addEventListener('DOMContentLoaded', function(){
         } else if(child.nodeName === 'BR'){
           out += '<br>';
         } else if(SAFE_INLINE[child.nodeName]){
-          // Garder la couleur si présente
+          var st = (child.getAttribute && child.getAttribute('style')) || '';
+          // Couleur
           var color = '';
-          var st = child.getAttribute && child.getAttribute('style');
-          if(st){ var m = st.match(/(?:^|[;\s])color\s*:\s*([^;]+)/i); if(m) color = m[1].trim(); }
+          var m = st.match(/(?:^|[;\s])color\s*:\s*([^;]+)/i); if(m) color = m[1].trim();
           if(!color && child.nodeName === 'FONT' && child.getAttribute('color')) color = child.getAttribute('color');
-          // Ignorer les couleurs blanches/transparentes (sinon texte invisible)
           var _cl = color.toLowerCase().replace(/\s/g,'');
           if(_cl==='white'||_cl==='#fff'||_cl==='#ffffff'||_cl==='transparent'||_cl==='rgb(255,255,255)'||_cl.indexOf('rgba(255,255,255')>=0) color='';
+          // Taille (px direct, ou attribut size de <font>)
+          var fontPx = '';
+          var fsm = st.match(/font-size\s*:\s*(\d+(?:\.\d+)?)\s*px/i); if(fsm) fontPx = fsm[1];
+          if(!fontPx && child.nodeName === 'FONT' && child.getAttribute('size')){
+            var _smap = {'1':'10','2':'12','3':'14','4':'16','5':'18','6':'24','7':'28'};
+            fontPx = _smap[child.getAttribute('size')] || '';
+          }
+          // Gras (balise OU font-weight)
+          var bold = (child.nodeName === 'STRONG' || child.nodeName === 'B') || /font-weight\s*:\s*(bold|[6-9]00)/i.test(st);
+          var und = (child.nodeName === 'U') || /text-decoration[^;]*underline/i.test(st);
           var inner = walk(child);
           if(!inner.trim() && inner.indexOf('<br>') < 0) return;
-          var bold = (child.nodeName === 'STRONG' || child.nodeName === 'B');
-          var und = (child.nodeName === 'U');
           var open = '', close = '';
           if(bold){ open += '<strong>'; close = '</strong>' + close; }
           if(und){ open += '<u>'; close = '</u>' + close; }
-          if(color){ open += '<span style="color:'+esc(color)+'">'; close = '</span>' + close; }
+          var spanStyle = '';
+          if(color) spanStyle += 'color:'+esc(color)+';';
+          if(fontPx) spanStyle += 'font-size:'+esc(fontPx)+'px;';
+          if(spanStyle){ open += '<span style="'+spanStyle+'">'; close = '</span>' + close; }
           out += open + inner + close;
         } else if(BLOCK[child.nodeName]){
+          // Préserver le centrage
+          var bst = (child.getAttribute && child.getAttribute('style')) || '';
+          var centered = /text-align\s*:\s*center/i.test(bst) || (child.getAttribute && child.getAttribute('align')==='center');
           var blockInner = walk(child);
           if(out && !/(<br>)\s*$/i.test(out)) out += '<br>';
-          out += blockInner;
+          if(centered && blockInner.trim()) out += '<div style="text-align:center">'+blockInner+'</div>';
+          else out += blockInner;
         } else if(child.childNodes && child.childNodes.length){
           out += walk(child);
         }
@@ -5235,7 +5249,8 @@ function _getPdfSrc(originalSrc){
 /* ════════════════════════════════════════
    PDF SERVEUR — Edge Function Supabase
 ════════════════════════════════════════ */
-function _sbGeneratePDF(){
+function _sbGeneratePDF(compression){
+  compression = compression || 'normale';
   if(!_sb||!window._dossier||!window._dossier._sbId){
     toast('⚠️ Sauvegardez d\'abord le dossier dans Supabase');
     return;
@@ -5337,7 +5352,8 @@ function _sbGeneratePDF(){
     dossier:dossierData,
     facade_url:facadeUrl,
     conclusion_html:conclusionHtml,
-    logements:logementsData
+    logements:logementsData,
+    compression:compression
   };
 
   // ═══ APPEL SERVEUR ═══
@@ -5425,16 +5441,34 @@ function _sbGeneratePDF(){
 var _pdfGenerating=false;
 var _pdfGenTimer=null;
 function downloadPDF(){
-  // ═══ TOUJOURS utiliser la génération serveur (PDF léger + pas de limite mémoire) ═══
-  // Le serveur compresse les photos (4:3, qualité 85). La génération locale reste
-  // un fallback uniquement si Supabase n'est pas disponible (mode hors-ligne).
+  // ═══ Si génération serveur disponible → proposer le choix de compression ═══
   if(_sb && _sbUser && window._dossier && window._dossier._sbId){
-    console.log('[FDE] PDF serveur');
-    _sbGeneratePDF();
+    _choosePdfCompression();
   } else {
     console.log('[FDE] PDF client (fallback hors-ligne)');
     genererPDF();
   }
+}
+
+// Menu de choix de compression avant génération PDF
+function _choosePdfCompression(){
+  var modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(15,23,42,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.innerHTML='<div style="background:white;border-radius:16px;padding:28px;max-width:360px;width:100%;">'+
+    '<div style="font-size:18px;font-weight:800;color:#0f172a;margin-bottom:6px;text-align:center">Qualité du PDF</div>'+
+    '<div style="font-size:13px;color:#64748b;margin-bottom:20px;text-align:center">Plus la compression est forte, plus le fichier est léger (pour l\'envoi par mail).</div>'+
+    '<button class="pdf-comp-btn" data-lvl="normale" style="display:block;width:100%;background:#F97316;color:white;padding:14px;border-radius:10px;font-weight:700;border:none;font-size:15px;cursor:pointer;margin-bottom:10px;text-align:left">📄 Normale<div style="font-size:11px;font-weight:400;opacity:.9;margin-top:2px">Qualité maximale — fichier le plus lourd</div></button>'+
+    '<button class="pdf-comp-btn" data-lvl="compressee" style="display:block;width:100%;background:#0ea5e9;color:white;padding:14px;border-radius:10px;font-weight:700;border:none;font-size:15px;cursor:pointer;margin-bottom:10px;text-align:left">📉 Compressée<div style="font-size:11px;font-weight:400;opacity:.9;margin-top:2px">Bon équilibre — ~40% plus léger</div></button>'+
+    '<button class="pdf-comp-btn" data-lvl="tres_compressee" style="display:block;width:100%;background:#16a34a;color:white;padding:14px;border-radius:10px;font-weight:700;border:none;font-size:15px;cursor:pointer;margin-bottom:14px;text-align:left">🗜️ Très compressée<div style="font-size:11px;font-weight:400;opacity:.9;margin-top:2px">Fichier le plus léger — idéal gros rapports</div></button>'+
+    '<button id="pdf-comp-cancel" style="display:block;width:100%;background:transparent;color:#64748b;padding:10px;border-radius:8px;border:1px solid #e2e8f0;font-size:14px;cursor:pointer">Annuler</button>'+
+    '</div>';
+  modal.onclick=function(e){ if(e.target===modal) modal.remove(); };
+  document.body.appendChild(modal);
+  modal.querySelectorAll('.pdf-comp-btn').forEach(function(b){
+    b.onclick=function(){ var lvl=b.getAttribute('data-lvl'); modal.remove(); _sbGeneratePDF(lvl); };
+  });
+  var cancel=document.getElementById('pdf-comp-cancel');
+  if(cancel) cancel.onclick=function(){ modal.remove(); };
 }
 
 // Convertit n'importe quelle image en dataURL JPEG via canvas
