@@ -2575,7 +2575,7 @@ document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
       restoreSession();
       var vc=document.getElementById('version-cell');
-      if(vc){var n=new Date();vc.textContent='v4.9 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+      if(vc){var n=new Date();vc.textContent='v5.0 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
     },300);
   }
 
@@ -3751,8 +3751,8 @@ function _applyTitre(color, sizePx, centered){
   toast('Titre appliqué ✓');
   try{ autoSave(); }catch(e){}
 }
-function _titreOrange(){ _applyTitre('#ff8900','18', true); }
-function _titreBleu(){ _applyTitre('#009fe3','15', false); }
+function _titreOrange(){ _applyTitre('#ff8900','15', true); }
+function _titreBleu(){ _applyTitre('#009fe3','13', false); }
 function applyBlockBg(color){
   var sel=window.getSelection();
   if(sel && sel.rangeCount>0){
