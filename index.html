@@ -783,7 +783,7 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
         <label style="display:inline-flex;align-items:center;gap:2px;font-size:11px;color:var(--text-muted);cursor:pointer">Fond <input type="color" value="#ffff00" style="width:24px;height:24px;border:none;padding:0;cursor:pointer" onchange="execCmd('hiliteColor',this.value)"></label>
         <div class="tsep"></div>
         <button class="tb" onclick="execCmd('foreColor','#009fe3')" title="Bleu" style="color:#009fe3;font-weight:800;font-size:15px">A</button>
-        <button class="tb" onclick="execCmd('foreColor','#000000')" title="Noir"><b style="color:#000000">A</b></button><button onclick="execCmd('foreColor','#e12b2b')" title="Rouge" style="color:#e12b2b;font-weight:800;font-size:15px">A</button>
+        <button class="tb" onclick="execCmd('foreColor','#000000')" title="Noir"><b style="color:#000000">A</b></button><button onclick="execCmd('foreColor','#e12b2b')" title="Rouge" style="color:#e12b2b;font-weight:800;font-size:15px">A</button><div class="tsep"></div><button class="tb" onclick="_titreOrange()" title="Titre orange centré" style="background:#ff8900;color:white;font-weight:800;font-size:11px;padding:3px 7px;border-radius:5px">Titre</button><button class="tb" onclick="_titreBleu()" title="Sous-titre bleu" style="background:#009fe3;color:white;font-weight:800;font-size:11px;padding:3px 7px;border-radius:5px;margin-left:3px">Sous-titre</button>
       </div>
       <div class="editor-area" contenteditable="true" id="editor-investi" style="flex:1;min-height:500px;width:100%;box-sizing:border-box;padding-bottom:120px;color:#000000">
         <p style="color:var(--text-muted)">Sélectionnez un logement visité via le bouton 🏠 à droite pour charger le squelette.</p>
@@ -862,7 +862,7 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
         <button class="tb" onclick="execCmd('insertHorizontalRule')" title="Séparateur"><i class="ti ti-minus"></i></button>
         <div class="tsep"></div>
         <button class="tb" onclick="execCmd('foreColor','#009fe3')" title="Bleu" style="color:#009fe3;font-weight:800;font-size:15px">A</button>
-        <button class="tb" onclick="execCmd('foreColor','#000000')" title="Noir"><b style="color:#000000">A</b></button><button onclick="execCmd('foreColor','#e12b2b')" title="Rouge" style="color:#e12b2b;font-weight:800;font-size:15px">A</button>
+        <button class="tb" onclick="execCmd('foreColor','#000000')" title="Noir"><b style="color:#000000">A</b></button><button onclick="execCmd('foreColor','#e12b2b')" title="Rouge" style="color:#e12b2b;font-weight:800;font-size:15px">A</button><div class="tsep"></div><button class="tb" onclick="_titreOrange()" title="Titre orange centré" style="background:#ff8900;color:white;font-weight:800;font-size:11px;padding:3px 7px;border-radius:5px">Titre</button><button class="tb" onclick="_titreBleu()" title="Sous-titre bleu" style="background:#009fe3;color:white;font-weight:800;font-size:11px;padding:3px 7px;border-radius:5px;margin-left:3px">Sous-titre</button>
       </div>
       <div class="editor-area" contenteditable="true" id="editor-conclusion" style="min-height:380px;color:#000000">
 <p><strong>1. Synthèse de la recherche de fuite technique</strong></p>
@@ -2575,7 +2575,7 @@ document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
       restoreSession();
       var vc=document.getElementById('version-cell');
-      if(vc){var n=new Date();vc.textContent='v4.7 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+      if(vc){var n=new Date();vc.textContent='v4.8 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
     },300);
   }
 
@@ -3726,6 +3726,24 @@ document.addEventListener('click', function(e){
    ÉDITEUR RICHE
 ════════════════════════════════════════ */
 function execCmd(cmd,val){ document.execCommand(cmd,false,val||null); }
+// Applique le format "titre orange centré" (identique aux titres de squelette)
+function _applyTitre(color, size){
+  document.execCommand('justifyCenter');
+  document.execCommand('foreColor', false, color);
+  if(!document.queryCommandState('bold')) document.execCommand('bold');
+  if(!document.queryCommandState('underline')) document.execCommand('underline');
+  document.execCommand('fontSize', false, size);
+  // marquer comme modifié
+  var sel=window.getSelection();
+  if(sel && sel.anchorNode){
+    var n=sel.anchorNode; while(n && n.id!=='editor-conclusion' && n.id!=='editor-investi') n=n.parentNode;
+    if(n && n.id==='editor-conclusion') window._conclusionDirty=true;
+    else if(n && n.id==='editor-investi') window._investiDirty=true;
+  }
+  toast('Titre appliqué ✓');
+}
+function _titreOrange(){ _applyTitre('#ff8900','4'); }
+function _titreBleu(){ _applyTitre('#009fe3','3'); }
 function applyBlockBg(color){
   var sel=window.getSelection();
   if(sel && sel.rangeCount>0){
