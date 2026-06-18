@@ -767,7 +767,7 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
       <div class="editor-toolbar">
         <select class="tsel" onchange="execCmd('formatBlock',this.value)"><option value="p">Normal</option><option value="h2">Titre 1</option><option value="h3">Titre 2</option></select>
         <select class="tsel" style="width:108px" onchange="execCmd('fontName',this.value)"><option>Arial</option><option>Times New Roman</option><option>Courier New</option></select>
-        <select class="tsel" style="width:54px" onchange="execCmd('fontSize',this.value)"><option value="2">12</option><option value="3" selected>14</option><option value="4">16</option><option value="5">18</option><option value="6">24</option></select>
+        <select id="tsel-investi" class="tsel" style="width:54px" onchange="execCmd('fontSize',this.value)"><option value="2">12</option><option value="3" selected>14</option><option value="4">16</option><option value="5">18</option><option value="6">24</option></select>
         <div class="tsep"></div>
         <button class="tb" onclick="execCmd('bold')"><b>G</b></button>
         <button class="tb" onclick="execCmd('italic')"><i>I</i></button>
@@ -824,7 +824,7 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
       <div class="editor-toolbar">
         <select class="tsel" onchange="execCmd('formatBlock',this.value)"><option value="p">Normal</option><option value="h2">Titre 1</option><option value="h3">Titre 2</option></select>
         <select class="tsel" style="width:108px" onchange="execCmd('fontName',this.value)"><option>Arial</option><option>Times New Roman</option><option>Courier New</option></select>
-        <select class="tsel" style="width:54px" onchange="execCmd('fontSize',this.value)"><option value="2">12</option><option value="3" selected>14</option><option value="4">16</option><option value="5">18</option><option value="6">24</option></select>
+        <select id="tsel-conclu" class="tsel" style="width:54px" onchange="execCmd('fontSize',this.value)"><option value="2">12</option><option value="3" selected>14</option><option value="4">16</option><option value="5">18</option><option value="6">24</option></select>
         <div class="tsep"></div>
         <button class="tb" onclick="execCmd('bold')"><b>G</b></button>
         <button class="tb" onclick="execCmd('italic')"><i>I</i></button>
@@ -2575,7 +2575,7 @@ document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
       restoreSession();
       var vc=document.getElementById('version-cell');
-      if(vc){var n=new Date();vc.textContent='v4.4 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+      if(vc){var n=new Date();vc.textContent='v4.5 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
     },300);
   }
 
@@ -3802,11 +3802,24 @@ document.addEventListener('DOMContentLoaded', function(){
     }
     return walk(root);
   }
+  function _syncSizeSelect(id){
+    try {
+      var v = document.queryCommandValue('fontSize');
+      if(!v) return;
+      var selId = (id==='editor-conclusion') ? 'tsel-conclu' : 'tsel-investi';
+      var sel = document.getElementById(selId);
+      if(sel && sel.value !== String(v)){
+        // Vérifier que la valeur existe dans les options
+        var ok=false; for(var i=0;i<sel.options.length;i++){ if(sel.options[i].value===String(v)){ok=true;break;} }
+        if(ok) sel.value = String(v);
+      }
+    } catch(e){}
+  }
   function _hookEditor(id){
     var ed=document.getElementById(id); if(!ed) return;
-    ed.addEventListener('touchend', function(){ setTimeout(saveCursorPos, 50); });
-    ed.addEventListener('mouseup', function(){ setTimeout(saveCursorPos, 50); });
-    ed.addEventListener('keyup', function(){ saveCursorPos(); });
+    ed.addEventListener('touchend', function(){ setTimeout(function(){ saveCursorPos(); _syncSizeSelect(id); }, 50); });
+    ed.addEventListener('mouseup', function(){ setTimeout(function(){ saveCursorPos(); _syncSizeSelect(id); }, 50); });
+    ed.addEventListener('keyup', function(){ saveCursorPos(); _syncSizeSelect(id); });
     // ═══ Marquer comme "modifié par l'utilisateur" (pour ne sauvegarder que les vraies modifs) ═══
     ed.addEventListener('input', function(){
       if(id==='editor-conclusion') window._conclusionDirty=true;
