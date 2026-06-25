@@ -948,6 +948,14 @@ tbody td{padding:10px 12px;font-size:13px;vertical-align:middle;}
   <div style="overflow-y:auto;-webkit-overflow-scrolling:touch;max-height:calc(100vh - 140px);padding:0 8px 8px">
     <div id="phrase-inv-content">
     <div class="phrase-accordion">
+      <div class="phrase-accordion-title" ontouchstart="accTouchStart(event)" ontouchend="accTouchEnd(this,event)" style="cursor:pointer;padding:10px 12px;background:var(--orange);color:white;font-weight:700;font-size:13px;border-radius:8px;margin-bottom:2px;touch-action:manipulation"><i class="ti ti-chevron-right" style="transition:transform .2s;margin-right:6px"></i>INSPECTION VIDEO</div>
+      <div class="phrase-accordion-body" style="display:none;padding:4px 0">
+        <div class="phrase-row" style="padding:6px 10px;border-bottom:1px solid #e5e7eb;display:flex;align-items:flex-start;gap:6px"><span style="flex:1;font-size:12px;color:#334155;line-height:1.4">- Inspection vidéo dans le réseau eaux usées à partir _, à al...</span><button style="background:var(--orange);color:white;border:none;border-radius:6px;width:28px;height:28px;font-size:16px;cursor:pointer;flex-shrink:0;touch-action:manipulation" onclick="insertPhrase(_activePhraseEditor,'- Inspection vidéo dans le réseau eaux usées à partir _, à aller vers la voirie, nous ne visualisons pas d\'anomalies.')">+</button></div>
+        <div class="phrase-row" style="padding:6px 10px;border-bottom:1px solid #e5e7eb;display:flex;align-items:flex-start;gap:6px"><span style="flex:1;font-size:12px;color:#334155;line-height:1.4">- Inspection vidéo dans le réseau eaux vannes à partir du WC,...</span><button style="background:var(--orange);color:white;border:none;border-radius:6px;width:28px;height:28px;font-size:16px;cursor:pointer;flex-shrink:0;touch-action:manipulation" onclick="insertPhrase(_activePhraseEditor,'- Inspection vidéo dans le réseau eaux vannes à partir du WC, à aller vers la voirie, nous ne visualisons pas d\'anomalies.')">+</button></div>
+        <div class="phrase-row" style="padding:6px 10px;border-bottom:1px solid #e5e7eb;display:flex;align-items:flex-start;gap:6px"><span style="flex:1;font-size:12px;color:#334155;line-height:1.4">- Inspection vidéo de _ à partir d'une ouverture existante d...</span><button style="background:var(--orange);color:white;border:none;border-radius:6px;width:28px;height:28px;font-size:16px;cursor:pointer;flex-shrink:0;touch-action:manipulation" onclick="insertPhrase(_activePhraseEditor,'- Inspection vidéo de _ à partir d\'une ouverture existante dans _, puis :')">+</button></div>
+      </div>
+    </div>
+    <div class="phrase-accordion">
       <div class="phrase-accordion-title" ontouchstart="accTouchStart(event)" ontouchend="accTouchEnd(this,event)" style="cursor:pointer;padding:10px 12px;background:var(--orange);color:white;font-weight:700;font-size:13px;border-radius:8px;margin-bottom:2px;touch-action:manipulation"><i class="ti ti-chevron-right" style="transition:transform .2s;margin-right:6px"></i>RETRACAGE</div>
       <div class="phrase-accordion-body" style="display:none;padding:4px 0">
         <div class="phrase-row" style="padding:6px 10px;border-bottom:1px solid #e5e7eb;display:flex;align-items:flex-start;gap:6px"><span style="flex:1;font-size:12px;color:#334155;line-height:1.4">- Retraçage des réseaux encastrés par caméra infra-rouge et ...</span><button style="background:var(--orange);color:white;border:none;border-radius:6px;width:28px;height:28px;font-size:16px;cursor:pointer;flex-shrink:0;touch-action:manipulation" onclick="insertPhrase(_activePhraseEditor,'- Retraçage des réseaux encastrés par caméra infra-rouge et matériel ultrason. Nous sommes en présence d\'un réseau en __ de plus de __ ans avec des piquages en.')">+</button></div>
@@ -2575,7 +2583,7 @@ document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
       restoreSession();
       var vc=document.getElementById('version-cell');
-      if(vc){var n=new Date();vc.textContent='v5.0 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+      if(vc){var n=new Date();vc.textContent='v5.1 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
     },300);
   }
 
@@ -3119,7 +3127,7 @@ function updateLogsVisites(){
         var _aptP2=(logData.apt||logData.etage)?(' appartement'+(logData.apt?' '+logData.apt:'')):'';
         var _etaLC2=logData.etage?(logData.etage.charAt(0).toLowerCase()+logData.etage.slice(1)):'';
         var _etaP2=_etaLC2?(' au '+_etaLC2):'';
-        var newTitle='Intervention de recherche de fuite '+_nLC+_aptP2+_etaP2;
+        var newTitle='Intervention de recherche de fuite '+_nLC+_aptP2+_etaP2+'.';
         _investiContents[id]=_investiContents[id].replace(
           /Intervention de recherche de fuite[^<]*/,
           newTitle
@@ -3576,6 +3584,17 @@ function addPhotoToSupport(sid){
         var wrap=document.getElementById(sid+'-photos');
         toast((wrap?wrap.querySelectorAll('.photo-thumb').length:files.length)+' photo(s) ajoutée(s)');
         autoSave();
+        // Rafraîchir immédiatement la galerie globale en bas du tableau de dégâts
+        try{
+          var _gg=document.getElementById('galerie-glob');
+          if(_gg){
+            _gg.innerHTML='';
+            var _mb=_gg.parentElement.querySelector('.galerie-more-btn');
+            if(_mb) _mb.remove();
+            _galerieOffset=0;
+            _populateGalerieFromThumbs();
+          }
+        }catch(e){ console.warn('[FDE] refresh galerie après ajout photo:', e); }
         // Sauvegarder vers Supabase immédiatement (tableau de dégâts)
         setTimeout(function(){ try{_sbSaveContenus();}catch(e){} }, 2000);
         return;
