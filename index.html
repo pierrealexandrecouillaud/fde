@@ -2052,6 +2052,58 @@ function _gsheetImportFromUrl() {
     });
 }
 
+// ═══ Import depuis le JSON collé (bouton du nouveau tableur d'automatisation) ═══
+function _jsonImportFromPaste() {
+  var ta = document.getElementById('json-import-input');
+  var raw = (ta ? ta.value : '').trim();
+  if (!raw) { toast('⚠️ Collez le JSON copié depuis votre tableur'); return; }
+  var j;
+  try { j = JSON.parse(raw); }
+  catch (e) { console.warn('[FDE] JSON import parse error:', e); toast('❌ JSON invalide — recopiez via le bouton du tableur'); return; }
+
+  function setV(id, val) { var e = document.getElementById(id); if (e) e.value = (val == null ? '' : String(val)); }
+  function setDate(id, val) {
+    if (!val) return;
+    var parts = String(val).split('/');
+    if (parts.length === 3) setV(id, parts[2] + '-' + parts[1] + '-' + parts[0]);
+    else setV(id, val);
+  }
+  // Répartit une adresse multi-lignes sur base / base2 / base3
+  function setAddr(base, val) {
+    var lines = String(val == null ? '' : val).split(/\r?\n/);
+    setV(base, lines[0] || '');
+    setV(base + '2', lines[1] || '');
+    setV(base + '3', lines[2] || '');
+  }
+
+  setV('tni-client', j.nom_prenom);
+  setAddr('tni-adresse', j.adresse_intervention);
+  setV('tni-cp', j.code_postal_intervention);
+  setV('tni-ville', j.ville_intervention);
+  setDate('tni-date', j.date_intervention);
+
+  setV('tni-fnm', j.nom_facturation);
+  setAddr('tni-fadresse', j.adresse_facturation);
+  // code_postal_ville_facturation → CP (5 chiffres) + reste = ville
+  var fcv = String(j.code_postal_ville_facturation || '');
+  var pm = fcv.match(/^(\d{5})\s*(.*)$/);
+  if (pm) { setV('tni-fcp', pm[1]); setV('tni-fville', pm[2]); }
+  else { setV('tni-fcp', ''); setV('tni-fville', fcv); }
+
+  setDate('tni-contact', j.date_1er_contact);
+  setDate('tni-edition', j.date_edition_rapport);
+  setV('tni-ref', j.ref_intervention);
+  setV('tni-devis', j.N_devis);
+  setV('tni-assurance', j.assurance);
+  setV('tni-expert', j.expert);
+  setV('tni-donneur', j.donneur_ordres);
+  setV('tni-refsinistre', j.ref_sinistre);
+  setV('tni-refdossier', j.ref_dossier);
+  setV('tni-refexpert', j.ref_expert);
+
+  toast('✅ Infos importées depuis le tableur — vérifiez puis cliquez Créer');
+}
+
 /* ═══ STUBS — fonctions perdues dans le crash de l'ancienne conversation ═══ */
 function updateGlobalNav(pageId){
   /* Met à jour l'onglet actif dans la barre de navigation rapport */
@@ -2583,7 +2635,7 @@ document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
       restoreSession();
       var vc=document.getElementById('version-cell');
-      if(vc){var n=new Date();vc.textContent='v5.1 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+      if(vc){var n=new Date();vc.textContent='v5.2 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
     },300);
   }
 
@@ -8169,6 +8221,14 @@ function adSec(navEl,name){
           <i class="ti ti-download"></i> Importer
         </button>
       </div>
+    </div>
+    <!-- IMPORT JSON (TABLEUR AUTOMATISATION) -->
+    <div id="json-import-zone" style="background:#ECFDF5;border:1.5px solid #10B981;border-radius:10px;padding:12px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:#065F46;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Mettre infos depuis tableur automatisation</div>
+      <textarea id="json-import-input" placeholder="Collez ici le JSON copié depuis le bouton de votre tableur..." style="width:100%;min-height:70px;border:1.5px solid #6EE7B7;border-radius:7px;padding:9px;font-size:13px;box-sizing:border-box;-webkit-appearance:none;font-family:monospace;resize:vertical"></textarea>
+      <button onclick="_jsonImportFromPaste()" style="margin-top:8px;width:100%;background:#10B981;color:white;border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;touch-action:manipulation">
+        <i class="ti ti-clipboard-check"></i> Mettre infos depuis tableur automatisation
+      </button>
     </div>
     <div style="background:#fff7ed;border-radius:8px;padding:12px;margin-bottom:10px">
       <div style="font-size:11px;font-weight:700;color:#ff8900;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Client (lieu intervention)</div>
