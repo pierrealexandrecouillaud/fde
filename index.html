@@ -1333,23 +1333,47 @@ function _sbLogout() {
 // Vérifier session existante (auto-login)
 function _sbCheckSession(onLoggedIn, onNotLoggedIn) {
   if (!_sb) { onNotLoggedIn(); return; }
-  _sb.auth.getSession().then(function(result) {
-    if (result.data && result.data.session && result.data.session.user) {
-      var user = result.data.session.user;
+  // Enrichit _sbUser avec le profil en arrière-plan (non bloquant)
+  function _loadProfileBg(user){
+    try {
       _sb.from('profiles').select('*').eq('id', user.id).single()
         .then(function(profResult) {
-          if (profResult.error) {
-            _sbUser = { id: user.id, email: user.email, prenom: user.email.split('@')[0], nom: '', role: 'technicien' };
-          } else {
+          if (profResult && !profResult.error && profResult.data) {
             var p = profResult.data;
             _sbUser = { id: p.id, email: p.email, prenom: p.prenom || '', nom: p.nom || '', role: p.role || 'technicien' };
+            _updateUserDisplay();
           }
-          _updateUserDisplay();
-          onLoggedIn(_sbUser);
-        });
+        })
+        .catch(function(){});
+    } catch(e){}
+  }
+  function _connect(user){
+    // Session valide → connecter TOUT DE SUITE, sans attendre la requête profiles
+    // (qui peut échouer sur réseau instable au retour d'un gros PDF → sinon on
+    // restait coincé sur login alors que la session est parfaitement valide).
+    _sbUser = { id: user.id, email: user.email, prenom: (user.email||'').split('@')[0], nom: '', role: 'technicien' };
+    _updateUserDisplay();
+    onLoggedIn(_sbUser);
+    _loadProfileBg(user);
+  }
+  _sb.auth.getSession().then(function(result) {
+    if (result && result.data && result.data.session && result.data.session.user) {
+      _connect(result.data.session.user);
     } else {
       onNotLoggedIn();
     }
+  }).catch(function(err){
+    // getSession a échoué (erreur transitoire) → NE PAS jeter l'utilisateur sur
+    // login tout de suite ; on retente une fois après un court délai.
+    console.warn('[FDE] getSession a échoué, nouvelle tentative:', err && err.message);
+    setTimeout(function(){
+      try {
+        _sb.auth.getSession().then(function(r2){
+          if (r2 && r2.data && r2.data.session && r2.data.session.user) { _connect(r2.data.session.user); }
+          else { onNotLoggedIn(); }
+        }).catch(function(){ onNotLoggedIn(); });
+      } catch(e){ onNotLoggedIn(); }
+    }, 1200);
   });
 }
 
@@ -2635,7 +2659,7 @@ document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
       restoreSession();
       var vc=document.getElementById('version-cell');
-      if(vc){var n=new Date();vc.textContent='v5.2 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+      if(vc){var n=new Date();vc.textContent='v5.4 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
     },300);
   }
 
@@ -7281,20 +7305,27 @@ function showHistorique(){
   document.body.appendChild(modal);
 }
 
+// Vide TOUS les champs du formulaire nouvelle intervention (y compris adresses 2/3,
+// la zone verte "tableur automatisation" et le champ URL Google Sheet).
+function _clearNewIntervForm(){
+  ['tni-ref','tni-client','tni-adresse','tni-adresse2','tni-adresse3','tni-cp','tni-ville',
+   'tni-fnm','tni-fadresse','tni-fadresse2','tni-fadresse3','tni-fcp','tni-fville',
+   'tni-date','tni-contact','tni-edition',
+   'tni-agence','tni-devis','tni-donneur','tni-assurance','tni-expert',
+   'tni-refdossier','tni-refsinistre','tni-refexpert',
+   'json-import-input','gsheet-url-input'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.value='';
+  });
+}
+
 function showTechNewInterv(){
   _pendingUpdate = false;
   _pendingUpdateBtn = null;
   window._editingInterv = null;
   var btn = document.getElementById('modal-submit-btn');
   if(btn){ btn.textContent = 'Cr\u00e9er l\'intervention'; btn.style.background='#ff8900'; }
-  // Vider tous les champs pour repartir à zéro
-  ['tni-ref','tni-client','tni-adresse','tni-cp','tni-ville',
-   'tni-fnm','tni-fadresse','tni-fcp','tni-fville',
-   'tni-contact','tni-edition',
-   'tni-agence','tni-devis','tni-donneur','tni-assurance','tni-expert',
-   'tni-refdossier','tni-refsinistre','tni-refexpert'].forEach(function(id){
-    var el=document.getElementById(id); if(el) el.value='';
-  });
+  // Vider tous les champs pour repartir à zéro (helper = liste complète)
+  _clearNewIntervForm();
   var tdate=document.getElementById('tni-date');
   if(tdate){ var n=new Date(); tdate.value=n.toISOString().split('T')[0]; }
   document.getElementById('tech-new-interv-modal').style.display='block';
@@ -7484,6 +7515,8 @@ function techCreateInterv(isUpdate){
   _syncAllCadres();
   // Sauvegarder l'état initial vide du nouveau dossier
   _saveCurrentRapportSlot();
+  // Vider le formulaire nouvelle intervention pour la prochaine saisie
+  _clearNewIntervForm();
   toast('Intervention '+(ref||'nouvelle')+' cr\u00e9\u00e9e !');
 }
 
