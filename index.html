@@ -2659,7 +2659,7 @@ document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
       restoreSession();
       var vc=document.getElementById('version-cell');
-      if(vc){var n=new Date();vc.textContent='v5.4 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+      if(vc){var n=new Date();vc.textContent='v5.5 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
     },300);
   }
 
@@ -3972,6 +3972,13 @@ document.addEventListener('DOMContentLoaded', function(){
       }
       var safe = '';
       if(html){
+        // ═══ Ne garder QUE le fragment réellement sélectionné ═══
+        // Safari/iOS met souvent le bloc parent ENTIER dans text/html quand on copie
+        // quelques mots au milieu d'une phrase → on collait la phrase complète.
+        // Les navigateurs délimitent la vraie sélection par des commentaires
+        // StartFragment/EndFragment : on extrait ce segment quand il est présent.
+        var _fm = html.match(/<!--\s*StartFragment\s*-->([\s\S]*?)<!--\s*EndFragment\s*-->/i);
+        if(_fm && _fm[1]) html = _fm[1];
         // Nettoyer le HTML : ne garder que les balises/styles utiles
         var tmp = document.createElement('div');
         tmp.innerHTML = html;
@@ -3980,6 +3987,16 @@ document.addEventListener('DOMContentLoaded', function(){
         safe = _sanitizePastedNode(tmp);
         // Nettoyer les espaces multiples et lignes vides en trop
         safe = safe.replace(/(<br>\s*){3,}/gi, '<br><br>').trim();
+        // Sécurité : si le HTML nettoyé contient nettement plus de texte que le
+        // text/plain (= le presse-papiers a ramené le bloc entier), on privilégie
+        // le text/plain, qui correspond exactement à la sélection de l'utilisateur.
+        if(text && text.trim()){
+          var _plainLen = text.trim().length;
+          var _tmp2 = document.createElement('div');
+          _tmp2.innerHTML = safe;
+          var _htmlLen = (_tmp2.textContent || '').trim().length;
+          if(_htmlLen > _plainLen + 5) safe = '';
+        }
       }
       if(!safe && text){
         safe = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
