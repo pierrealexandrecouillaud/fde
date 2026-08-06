@@ -1770,13 +1770,15 @@ function _sbSaveGalleryDebounced(){
   if(_gallerySaveTimer) clearTimeout(_gallerySaveTimer);
   _gallerySaveTimer=setTimeout(_sbSaveGallery, 3000);
 }
-function _sbSaveGallery(){
+function _sbSaveGallery(allowEmpty){
   if(!_sb || !window._dossier || !window._dossier._sbId) return;
   // Ne sauver que les photos avec des URLs Supabase (pas data:)
   var galleryData = _sharedImages.filter(function(img){
     return img.src && img.src.indexOf('http')===0;
   }).map(function(img){ return {src:img.src||'', storageUrl:img.storageUrl||'', name:img.name||''}; });
-  if(!galleryData.length) return;
+  // Garde-fou : on ne sauve pas une galerie vide SAUF si c'est demandé explicitement
+  // (ex: suppression d'image → il faut persister le fait qu'il n'y a plus rien).
+  if(!galleryData.length && !allowEmpty) return;
   _sb.from('contenus').upsert({
     intervention_id: window._dossier._sbId,
     logement_id: '_gallery',
@@ -2659,7 +2661,7 @@ document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
       restoreSession();
       var vc=document.getElementById('version-cell');
-      if(vc){var n=new Date();vc.textContent='v5.7 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+      if(vc){var n=new Date();vc.textContent='v5.8 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
     },300);
   }
 
@@ -4310,7 +4312,9 @@ function removeSharedImg(src, btn){
       if(img && img.src===src) item.remove();
     });
   });
-  _sbSaveGalleryDebounced();
+  // Persiste la suppression tout de suite, même si la galerie devient vide
+  // (sinon l'ancienne galerie restait en base et l'image réapparaissait au retour).
+  _sbSaveGallery(true);
 }
 
 function insertImgAtCursor(src){
