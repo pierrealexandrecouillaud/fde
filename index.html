@@ -2661,7 +2661,7 @@ document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
       restoreSession();
       var vc=document.getElementById('version-cell');
-      if(vc){var n=new Date();vc.textContent='v5.8 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+      if(vc){var n=new Date();vc.textContent='v5.9 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
     },300);
   }
 
@@ -2949,6 +2949,7 @@ var _activeSkelType = null;
 
 // Squelettes investigation
 var SKEL_INVESTI = {
+  surconso: '<p style="text-align:center"><strong><u><span style="color:#ff8900;font-size:15px">INSTALLATION SANITAIRE INTÉRIEURE</span></u></strong></p><br><p>- Contrôle de l\'étancheité des éléments sanitaires (ex : chauffe-eau, WC...), RAS.</p><br><p>- Mise en place d\'un manomètre sur l\'installation sanitaire puis contrôle de pression en circuit fermé, nous constatons que la pression _. La pression relevée sur le réseau est de bars.</p><br><p>- Retraçage des réseaux encastrés _ par caméra infra-rouge et matériel ultrason.</p><br><p>- Écoute avec matériel acoustique sur les réseaux eau chaude dans l\'habitation, RAS.</p><br><p>- Écoute avec matériel acoustique sur les réseaux eau froide dans l\'habitation, RAS.</p><br><p>- Mise en pression des réseaux eau _ à _ bars, nous constatons que la pression _, puis nouveau contrôle des réseaux avec matériel acoustique, RAS.</p><br><p style="text-align:center"><strong><u><span style="color:#ff8900;font-size:15px">INSTALLATION SANITAIRE EXTÉRIEURE</span></u></strong></p><br><p>- Mise en place d\'un manomètre sur l\'installation sanitaire puis contrôle de pression en circuit fermé, nous constatons que la pression _. La pression relevée sur le réseau est de bars.</p><br><p>- Retraçage des réseaux extérieurs par caméra, sonde et ultrason.</p><br><p>- Inspection vidéo dans l\'alimentation en polyéthylène de _, RAS.</p><br><p>- Mise en pression de l\'alimentation principale eau froide avec gaz traceur puis localisation du point litigieux avec renifleur gaz,</p><br><p>- Mise en place d\'une sonde acoustique dans l\'alimentation principale eau froide sous pression, fuite localisée en terre à _ mètres de _ et _ cm de profondeur.</p><br><p>- Terrassement au niveau de _ afin d\'accéder à la conduite fuyarde, nous avons confirmation et retrouvons _ fuyard dans le terrassement réalisé ce jour.</p>',
   visuelle: '<p><strong><u>TESTS EFFECTUÉS</u></strong></p>'+
     '<p>- Tests effectués :</p>'+
     '<p>- Mesure de pression avec manomètre.</p>'+
