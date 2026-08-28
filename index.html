@@ -2661,7 +2661,7 @@ document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
       restoreSession();
       var vc=document.getElementById('version-cell');
-      if(vc){var n=new Date();vc.textContent='v5.9 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+      if(vc){var n=new Date();vc.textContent='v6.0 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
     },300);
   }
 
@@ -6972,8 +6972,9 @@ function _preRemplirModal(d, targetRow){
   if(!d) return;
   function setV(id,val){ var e=document.getElementById(id); if(e) e.value=(val&&val!='--'?val:''); }
   setV('tni-ref',d.ref); setV('tni-client',d.client); setV('tni-adresse',d.adresse);
+  setV('tni-adresse2',d.adresse2); setV('tni-adresse3',d.adresse3);
   setV('tni-cp',d.cp); setV('tni-ville',d.ville);
-  setV('tni-fnm',d.fnm); setV('tni-fadresse',d.fadresse); setV('tni-fcp',d.fcp); setV('tni-fville',d.fville);
+  setV('tni-fnm',d.fnm); setV('tni-fadresse',d.fadresse); setV('tni-fadresse2',d.fadresse2); setV('tni-fadresse3',d.fadresse3); setV('tni-fcp',d.fcp); setV('tni-fville',d.fville);
   setV('tni-contact',d.contact?d.contact.split('/').reverse().join('-'):'');
   setV('tni-date',d.date?d.date.split('/').reverse().join('-'):'');
   setV('tni-edition',d.edition?d.edition.split('/').reverse().join('-'):'');
@@ -7364,8 +7365,8 @@ function techCreateInterv(isUpdate){
     _uid: 'dos_'+Date.now()+'_'+Math.random().toString(36).slice(2,8),
     _sbId: null,
     ref:ref, client:client, ville:ville,
-    adresse:fld('tni-adresse'), cp:fld('tni-cp'),
-    fnm:fld('tni-fnm'), fadresse:fld('tni-fadresse'), fcp:fld('tni-fcp'), fville:fld('tni-fville'),
+    adresse:fld('tni-adresse'), adresse2:fld('tni-adresse2'), adresse3:fld('tni-adresse3'), cp:fld('tni-cp'),
+    fnm:fld('tni-fnm'), fadresse:fld('tni-fadresse'), fadresse2:fld('tni-fadresse2'), fadresse3:fld('tni-fadresse3'), fcp:fld('tni-fcp'), fville:fld('tni-fville'),
     contact:fmtDate('tni-contact'), date:fmtDate('tni-date'), edition:fmtDate('tni-edition'),
     agence:fld('tni-agence'), devis:fld('tni-devis'), donneur:fld('tni-donneur'),
     assurance:fld('tni-assurance'), expert:fld('tni-expert'),
