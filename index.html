@@ -2661,7 +2661,7 @@ document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
       restoreSession();
       var vc=document.getElementById('version-cell');
-      if(vc){var n=new Date();vc.textContent='v6.0 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+      if(vc){var n=new Date();vc.textContent='v6.1 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
     },300);
   }
 
@@ -3971,6 +3971,7 @@ document.addEventListener('DOMContentLoaded', function(){
         text = e.clipboardData.getData('text/plain');
       }
       var safe = '';
+      var _hadFragment = false;
       if(html){
         // ═══ Ne garder QUE le fragment réellement sélectionné ═══
         // Safari/iOS met souvent le bloc parent ENTIER dans text/html quand on copie
@@ -3978,7 +3979,7 @@ document.addEventListener('DOMContentLoaded', function(){
         // Les navigateurs délimitent la vraie sélection par des commentaires
         // StartFragment/EndFragment : on extrait ce segment quand il est présent.
         var _fm = html.match(/<!--\s*StartFragment\s*-->([\s\S]*?)<!--\s*EndFragment\s*-->/i);
-        if(_fm && _fm[1]) html = _fm[1];
+        if(_fm && _fm[1]){ html = _fm[1]; _hadFragment = true; }
         // Nettoyer le HTML : ne garder que les balises/styles utiles
         var tmp = document.createElement('div');
         tmp.innerHTML = html;
@@ -3990,12 +3991,16 @@ document.addEventListener('DOMContentLoaded', function(){
         // Sécurité : si le HTML nettoyé contient nettement plus de texte que le
         // text/plain (= le presse-papiers a ramené le bloc entier), on privilégie
         // le text/plain, qui correspond exactement à la sélection de l'utilisateur.
-        if(text && text.trim()){
-          var _plainLen = text.trim().length;
-          var _tmp2 = document.createElement('div');
-          _tmp2.innerHTML = safe;
-          var _htmlLen = (_tmp2.textContent || '').trim().length;
-          if(_htmlLen > _plainLen + 5) safe = '';
+        var _plainLen = (text && text.trim()) ? text.trim().length : 0;
+        var _tmp2 = document.createElement('div');
+        _tmp2.innerHTML = safe;
+        var _htmlLen = (_tmp2.textContent || '').trim().length;
+        try{ console.log('[FDE][paste] editor='+id+' hadFragment='+_hadFragment+' plainLen='+_plainLen+' htmlLen='+_htmlLen+' plain="'+(text||'').slice(0,60)+'"'); }catch(e){}
+        if(_plainLen){
+          // (a) le HTML a nettement plus de texte que la sélection, OU
+          // (b) aucun repère de fragment fourni (Safari a probablement donné tout le bloc)
+          //     et le HTML est plus long que le texte simple
+          if(_htmlLen > _plainLen + 5 || (!_hadFragment && _htmlLen > _plainLen + 1)) safe = '';
         }
       }
       if(!safe && text){
