@@ -2661,7 +2661,7 @@ document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
       restoreSession();
       var vc=document.getElementById('version-cell');
-      if(vc){var n=new Date();vc.textContent='v6.1 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+      if(vc){var n=new Date();vc.textContent='v6.2 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
     },300);
   }
 
@@ -3995,11 +3995,15 @@ document.addEventListener('DOMContentLoaded', function(){
         var _tmp2 = document.createElement('div');
         _tmp2.innerHTML = safe;
         var _htmlLen = (_tmp2.textContent || '').trim().length;
-        try{ console.log('[FDE][paste] editor='+id+' hadFragment='+_hadFragment+' plainLen='+_plainLen+' htmlLen='+_htmlLen+' plain="'+(text||'').slice(0,60)+'"'); }catch(e){}
-        if(_plainLen){
+        var _hasBr = /<br>/i.test(safe); // collage multi-lignes ?
+        try{ console.log('[FDE][paste] editor='+id+' hadFragment='+_hadFragment+' hasBr='+_hasBr+' plainLen='+_plainLen+' htmlLen='+_htmlLen+' plain="'+(text||'').slice(0,60)+'"'); }catch(e){}
+        // On ne « force le texte simple » que pour un collage sur UNE SEULE LIGNE
+        // (fragment d'une phrase → évite de recoller la phrase entière). Dès qu'il y
+        // a des <br> (copie de plusieurs lignes, ex: investigation → conclusion), on
+        // GARDE le HTML pour préserver les retours à la ligne et la mise en forme.
+        if(_plainLen && !_hasBr){
           // (a) le HTML a nettement plus de texte que la sélection, OU
           // (b) aucun repère de fragment fourni (Safari a probablement donné tout le bloc)
-          //     et le HTML est plus long que le texte simple
           if(_htmlLen > _plainLen + 5 || (!_hadFragment && _htmlLen > _plainLen + 1)) safe = '';
         }
       }
