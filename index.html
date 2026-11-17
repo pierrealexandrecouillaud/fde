@@ -2661,7 +2661,7 @@ document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
       restoreSession();
       var vc=document.getElementById('version-cell');
-      if(vc){var n=new Date();vc.textContent='v6.2 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
+      if(vc){var n=new Date();vc.textContent='v6.3 \u2014 '+n.toLocaleDateString('fr-FR')+' '+n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
     },300);
   }
 
@@ -4807,7 +4807,12 @@ function startAutoSave(){
       var changed=false;
       sbDossiers.forEach(function(sbd){
         var exists=false;
-        _allDossiers.forEach(function(d){ if(d._sbId===sbd._sbId) exists=true; });
+        _allDossiers.forEach(function(d){
+          if(d._sbId===sbd._sbId){ exists=true; }
+          // Dossier local encore en attente d'ID serveur : le réassocier par
+          // référence au lieu de le dupliquer (même cause que le bug iPad).
+          else if(!d._sbId && sbd.ref && d.ref===sbd.ref && d.client===sbd.client){ d._sbId=sbd._sbId; exists=true; }
+        });
         if(!exists){ _allDossiers.push(sbd); changed=true; }
       });
       var before=_allDossiers.length;
@@ -5008,10 +5013,17 @@ function restoreSession(){
             local.refexpert = sbd.refexpert; local.devis = sbd.devis;
             local._status = sbd._status;
           } else {
-            // PAS trouvé par _sbId → chercher par date+client (le _sbId local est peut-être faux)
+            // PAS trouvé par _sbId → réassocier un dossier local dont l'_sbId manque/est faux.
+            // On distingue par la RÉFÉRENCE (unique) : ça empêche de confondre deux
+            // dossiers du MÊME nom le MÊME jour (bug iPad). On ne retombe sur la date
+            // que si AUCUN des deux n'a de référence.
             var matched = false;
             _allDossiers.forEach(function(d) {
-              if (!matched && d.date === sbd.date && d.client === sbd.client && d._sbId !== sbd._sbId) {
+              if (matched || d._sbId === sbd._sbId) return;
+              if (d.client !== sbd.client) return;
+              var sameByRef = (sbd.ref && d.ref) ? (d.ref === sbd.ref) : false;
+              var sameNoRef = (!sbd.ref && !d.ref) ? (d.date === sbd.date) : false;
+              if (sameByRef || sameNoRef) {
                 console.log('[FDE] Fix _sbId: ' + d._sbId + ' → ' + sbd._sbId);
                 d._sbId = sbd._sbId;
                 d.ref = sbd.ref; d.client = sbd.client; d.ville = sbd.ville;
